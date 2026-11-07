@@ -4,6 +4,15 @@ Prismlet runs Sarvam's Prism decision model on a laptop by reading the weights f
 
 The repository contains code, numeric results and documentation. It does not contain weights.
 
+## Technical report
+
+The technical report describes the streaming engine and the expert-pruning study:
+[PDF](paper/prismlet_report.pdf) and [project page](https://prnvkk.github.io/Prismlet/).
+
+The LaTeX source and figures are in [`paper/`](paper/). The report covers only the two
+experiments: running Prism on a laptop integrated GPU and removing routed experts. Every
+number comes from a file under [`results/`](results/).
+
 ## Hardware and software tested
 
 The measurements come from one machine:

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism on a Laptop: streaming inference and expert pruning</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1c1c1c;
+    --muted: #5a5a5a;
+    --rule: #d8d8d8;
+    --accent: #2f5d8a;
+    --panel: #f4f6f8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a;
+      --fg: #e8e8e8;
+      --muted: #a8b0b8;
+      --rule: #30363c;
+      --accent: #8ab4d8;
+      --panel: #1b2025;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 48px 22px 64px; }
+  h1 { font-size: 2rem; line-height: 1.2; margin: 0 0 8px; letter-spacing: -0.01em; }
+  h2 { font-size: 1.2rem; margin: 40px 0 12px; }
+  p { margin: 0 0 14px; }
+  .subtitle { color: var(--muted); font-size: 1.05rem; margin-bottom: 20px; }
+  .buttons { display: flex; flex-wrap: wrap; gap: 10px; margin: 24px 0 8px; }
+  .buttons a {
+    display: inline-block;
+    padding: 10px 16px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--fg);
+    background: var(--panel);
+    font-weight: 600;
+  }
+  .buttons a.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  .buttons a:hover { text-decoration: underline; }
+  .abstract { border-left: 3px solid var(--accent); padding-left: 16px; }
+  figure { margin: 28px 0; }
+  figure img { width: 100%; height: auto; display: block; }
+  figcaption { color: var(--muted); font-size: 0.92rem; margin-top: 8px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 0.94rem; }
+  th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--rule); }
+  th { font-weight: 600; color: var(--muted); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  pre {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 14px;
+    overflow-x: auto;
+    font-size: 0.86rem;
+    line-height: 1.45;
+  }
+  footer { margin-top: 48px; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--rule); padding-top: 16px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Prism on a Laptop</h1>
+  <div class="subtitle">Streaming inference of a 105B FP8 mixture-of-experts decision model and a study of expert pruning</div>
+  <p class="subtitle">Pranav Krishnakumar</p>
+
+  <div class="buttons">
+    <a class="primary" href="prismlet_report.pdf">Paper (PDF)</a>
+    <a href="https://github.com/PrnvKK/Prismlet">Code</a>
+  </div>
+
+  <h2>Abstract</h2>
+  <p class="abstract">
+    Prism is a 105B-parameter mixture-of-experts decision model that returns a probability for every option of a typed question in one forward pass. Its FP8 weight set occupies 106.2 GB and the published implementation assumes a datacentre GPU. We build a streaming engine that reads one decoder layer at a time from an NVMe SSD and computes on an Intel Arc 140V integrated GPU. The full model reaches 32.02 tokens per second at batch size 64 and reproduces the argmax of the model card example, with a maximum absolute probability gap of 0.041383. Against the hosted API, the full model agrees on 0.9267 of 1,200 questions with mean KL 0.0474. We then remove routed experts by router saliency. Keeping 32 of 128 experts gives 0.7750 argmax agreement, but NLI, sentiment and intent routing stay above 0.90 while knowledge multiple choice falls to 0.4080 and Hindi, Bengali and Telugu fall to 0.6275, 0.6373 and 0.5833. Classification-style decisions survive aggressive expert pruning; knowledge and multilingual decisions do not.
+  </p>
+
+  <h2>Key figures</h2>
+  <div class="grid">
+    <figure>
+      <img src="assets/f1_agreement_kl.png" alt="Agreement and KL against experts kept">
+      <figcaption>Agreement and KL against the full model as routed experts are removed, for general and synthetic-geometry calibration. The general-calibration curve has no N=8 point because that variant was not built.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/f2_domain_agreement.png" alt="Per-domain agreement at N=32 and N=16">
+      <figcaption>Argmax agreement by domain at N=32 and N=16 for the general-calibrated variants. Knowledge MCQ is the clear outlier.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/f4_throughput.png" alt="Throughput against batch size">
+      <figcaption>Tokens per second against batch size for the full model and the two pruned variants on the integrated GPU, plus the CPU-only N=16 point.</figcaption>
+    </figure>
+    <figure>
+      <img src="assets/f6_expert_usage.png" alt="Expert usage heatmap">
+      <figcaption>Share of routed tokens per expert and layer on the 500-question general calibration set. Usage is spread across the 128 experts rather than concentrated on a fixed small set.</figcaption>
+    </figure>
+  </div>
+
+  <h2>Results</h2>
+  <table>
+    <thead>
+      <tr><th>Check</th><th class="num">Result</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Layer check, FP32 vs reference, L0 / L1</td><td class="num">3.40e-7 / 3.92e-7</td></tr>
+      <tr><td>Layer check, BF16 vs reference, L0 / L1</td><td class="num">2.92e-3 / 3.78e-3</td></tr>
+      <tr><td>Model card example, maximum absolute gap</td><td class="num">0.041383</td></tr>
+      <tr><td>Full model vs hosted API, argmax agreement</td><td class="num">0.9267</td></tr>
+      <tr><td>Full model vs hosted API, mean KL</td><td class="num">0.0474</td></tr>
+      <tr><td>Full model throughput, batch 64</td><td class="num">32.02 tok/s</td></tr>
+      <tr><td>N=32, agreement / mean KL / accuracy drop</td><td class="num">0.7750 / 0.2866 / 11.00 pp</td></tr>
+      <tr><td>N=16, agreement / mean KL / accuracy drop</td><td class="num">0.6633 / 0.5148 / 18.83 pp</td></tr>
+    </tbody>
+  </table>
+
+  <h2>BibTeX</h2>
+  <pre>@misc{krishnakumar2026prismlet,
+  title  = {Prism on a Laptop: Streaming Inference of a 105B FP8
+            Mixture-of-Experts Decision Model and a Study of Expert Pruning},
+  author = {Krishnakumar, Pranav},
+  year   = {2026},
+  note   = {Technical report},
+  url    = {https://prnvkk.github.io/Prismlet/}
+}</pre>
+
+  <footer>
+    <p>This project is unofficial. It is not affiliated with or endorsed by Sarvam AI. The model weights are released by Sarvam AI under the Apache 2.0 licence; this repository contains code and measurements, not weights.</p>
+  </footer>
+</main>
+</body>
+</html>

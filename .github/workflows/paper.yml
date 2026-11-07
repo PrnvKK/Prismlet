@@ -1,0 +1,39 @@
+name: paper
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "paper/**"
+      - "site/**"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build PDF
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: main.tex
+          working_directory: paper
+      - name: Assemble Pages artifact
+        run: |
+          mkdir -p _site/assets
+          cp site/index.html _site/index.html
+          cp site/assets/*.png _site/assets/
+          cp paper/main.pdf _site/prismlet_report.pdf
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - uses: actions/deploy-pages@v4
