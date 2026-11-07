@@ -1,0 +1,48 @@
+{
+ "requests": [
+  {
+   "status": 200,
+   "latency_s": 0.423495,
+   "keys": [
+    "anger",
+    "team",
+    "urgent"
+   ],
+   "usage": {
+    "input_tokens": 161,
+    "output_tokens": 0
+   }
+  },
+  {
+   "id": "banking77-t0000",
+   "status": 200,
+   "latency_s": 0.372352,
+   "usage": {
+    "input_tokens": 289,
+    "output_tokens": 0
+   },
+   "answer_keys": [
+    "choice",
+    "confidence",
+    "probabilities",
+    "type"
+   ],
+   "parsed_ok": true
+  },
+  {
+   "id": "amazon_polarity-t0280",
+   "status": 200,
+   "latency_s": 0.351486,
+   "usage": {
+    "input_tokens": 90,
+    "output_tokens": 0
+   },
+   "answer_keys": [
+    "noul",
+    "type"
+   ],
+   "parsed_ok": true
+  }
+ ],
+ "all_shapes_parsed": true
+}

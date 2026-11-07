@@ -1,0 +1,11 @@
+{
+ "variant": "full",
+ "split": "test",
+ "n": 1200,
+ "shards": 8,
+ "seconds": 3152.334299325943,
+ "tokens": 197585,
+ "tokens_per_s": 62.678948753071396,
+ "peak_rss_gb": 18.62,
+ "minutes": 52.538904988765715
+}

@@ -1,0 +1,33 @@
+{
+ "lut_ok": true,
+ "lut_finite_codes": 254,
+ "lut_max": 448.0,
+ "lut_min_positive": 0.001953125,
+ "lut_nan_codes": [
+  127,
+  255
+ ],
+ "backend_results": {
+  "native": {
+   "ok": true,
+   "gbps": 0.5063240246966391
+  },
+  "bits": {
+   "ok": true,
+   "gbps": 0.10406539734603706
+  },
+  "lut": {
+   "ok": true,
+   "gbps": 0.8458493404212374
+  }
+ },
+ "backend_chosen": "lut",
+ "native_cast_xpu_ok": true,
+ "nan_codes_qproj": 0,
+ "real_tensor_equal": true,
+ "round_e4m3_equal": true,
+ "quant_act_equal": true,
+ "linear_bf16_rel_l2": 0.0024357952643185854,
+ "linear_fp32_rel_l2": 2.7159885007677076e-07,
+ "linear_emu_rel_l2": 0.0022809270303696394
+}

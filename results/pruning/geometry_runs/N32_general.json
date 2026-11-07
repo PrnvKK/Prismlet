@@ -1,0 +1,19 @@
+{
+ "tag": "N32_general",
+ "variant": "N32_general",
+ "skip": [],
+ "topk": 8,
+ "mode": "disk",
+ "device": "xpu",
+ "seconds": 127.04426908493042,
+ "tokens": 11958,
+ "tokens_per_s": 94.12467076343249,
+ "n_pixels": 63,
+ "argmax_agreement": 0.6984126984126984,
+ "mean_kl": 0.5778754575116073,
+ "mean_tv": 0.3068226689864541,
+ "pixel_acc": 0.5873015873015873,
+ "full_pixel_acc": 0.6984126984126984,
+ "pixel_acc_drop": 11.111111111111105,
+ "source": "measured"
+}

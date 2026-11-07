@@ -1,0 +1,13 @@
+{
+ "tag": "N32_reap_quick",
+ "variant": "N32_reap",
+ "skip": [],
+ "topk": 8,
+ "mode": "disk",
+ "device": "xpu",
+ "n_pixels": 63,
+ "argmax_agreement": 0.937,
+ "mean_kl": 0.1225,
+ "pixel_acc": 0.698,
+ "source": "ranking comparison summary"
+}

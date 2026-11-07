@@ -1,0 +1,19 @@
+{
+ "tag": "N16_general",
+ "variant": "N16_general",
+ "skip": [],
+ "topk": 8,
+ "mode": "disk",
+ "device": "xpu",
+ "seconds": 159.74310755729675,
+ "tokens": 11958,
+ "tokens_per_s": 74.85768984249225,
+ "n_pixels": 63,
+ "argmax_agreement": 0.47619047619047616,
+ "mean_kl": 1.365009241076177,
+ "mean_tv": 0.5021278048728756,
+ "pixel_acc": 0.4444444444444444,
+ "full_pixel_acc": 0.6984126984126984,
+ "pixel_acc_drop": 25.396825396825395,
+ "source": "measured"
+}

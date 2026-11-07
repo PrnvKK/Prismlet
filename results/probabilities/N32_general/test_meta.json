@@ -1,0 +1,11 @@
+{
+ "variant": "N32_general",
+ "split": "test",
+ "n": 1200,
+ "shards": 8,
+ "seconds": 2558.5519552230835,
+ "tokens": 197585,
+ "tokens_per_s": 77.22532254881348,
+ "peak_rss_gb": 12.41,
+ "minutes": 42.64253258705139
+}

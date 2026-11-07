@@ -1,0 +1,407 @@
+{
+ "datasets": [
+  {
+   "key": "banking77",
+   "repo_id": "PolyAI/banking77",
+   "revision": "1846984189f2bc0ac51c6fc3a600fa9e1714e0c6",
+   "url": "https://huggingface.co/datasets/PolyAI/banking77",
+   "files": [
+    {
+     "path": "data/test-00000-of-00001.parquet",
+     "bytes": 92409
+    },
+    {
+     "path": "data/train-00000-of-00001.parquet",
+     "bytes": 293553
+    }
+   ],
+   "license_card": "cc-by-4.0",
+   "license_note": "CC-BY-4.0 attribution required",
+   "type": "choice",
+   "domain": "intent routing",
+   "langs": [
+    "en"
+   ],
+   "n_test": 120,
+   "n_calib": 50,
+   "downloaded_bytes": 385962
+  },
+  {
+   "key": "massive",
+   "repo_id": "mteb/amazon_massive_intent",
+   "revision": "940fd47a81eaa7f2cc7b129674d945d618ac38c2",
+   "url": "https://huggingface.co/datasets/mteb/amazon_massive_intent",
+   "files": [
+    {
+     "path": "test/en.json.gz",
+     "bytes": 54111
+    },
+    {
+     "path": "test/hi.json.gz",
+     "bytes": 73166
+    },
+    {
+     "path": "test/bn.json.gz",
+     "bytes": 70994
+    },
+    {
+     "path": "test/ta.json.gz",
+     "bytes": 74703
+    },
+    {
+     "path": "test/te.json.gz",
+     "bytes": 77930
+    },
+    {
+     "path": "validation/en.json.gz",
+     "bytes": 38340
+    },
+    {
+     "path": "validation/hi.json.gz",
+     "bytes": 51098
+    },
+    {
+     "path": "validation/bn.json.gz",
+     "bytes": 49900
+    },
+    {
+     "path": "validation/ta.json.gz",
+     "bytes": 52410
+    },
+    {
+     "path": "validation/te.json.gz",
+     "bytes": 54666
+    }
+   ],
+   "license_card": "apache-2.0",
+   "license_note": "card apache-2.0; origin AmazonScience/massive CC-BY-4.0",
+   "type": "choice",
+   "domain": "intent routing",
+   "langs": [
+    "en",
+    "hi",
+    "bn",
+    "ta",
+    "te"
+   ],
+   "n_test": 160,
+   "n_calib": 80,
+   "downloaded_bytes": 597318
+  },
+  {
+   "key": "amazon_polarity",
+   "repo_id": "mteb/amazon_polarity",
+   "revision": "ec149c1fe36043668a50804214d4597804001f6f",
+   "url": "https://huggingface.co/datasets/mteb/amazon_polarity",
+   "files": [
+    {
+     "path": "data/test-00000-of-00001.parquet",
+     "bytes": 115313522
+    }
+   ],
+   "license_card": "apache-2.0",
+   "license_note": "card apache-2.0; derived from Amazon product reviews",
+   "type": "yes_no",
+   "domain": "sentiment",
+   "langs": [
+    "en"
+   ],
+   "n_test": 80,
+   "n_calib": 40,
+   "downloaded_bytes": 115313522
+  },
+  {
+   "key": "civil_comments",
+   "repo_id": "google/civil_comments",
+   "revision": "f2970eb3a55777454c94069077cc8d9b5866312d",
+   "url": "https://huggingface.co/datasets/google/civil_comments",
+   "files": [
+    {
+     "path": "data/test-00000-of-00001.parquet",
+     "bytes": 20800265
+    },
+    {
+     "path": "data/validation-00000-of-00001.parquet",
+     "bytes": 20955569
+    }
+   ],
+   "license_card": "cc0-1.0",
+   "license_note": "CC0-1.0 public domain dedication",
+   "type": "score",
+   "domain": "toxicity / moderation",
+   "langs": [
+    "en"
+   ],
+   "n_test": 150,
+   "n_calib": 60,
+   "downloaded_bytes": 41755834
+  },
+  {
+   "key": "snli",
+   "repo_id": "stanfordnlp/snli",
+   "revision": "cdb5c3d5eed6ead6e5a341c8e56e669bb666725b",
+   "url": "https://huggingface.co/datasets/stanfordnlp/snli",
+   "files": [
+    {
+     "path": "plain_text/test-00000-of-00001.parquet",
+     "bytes": 411531
+    },
+    {
+     "path": "plain_text/validation-00000-of-00001.parquet",
+     "bytes": 413157
+    }
+   ],
+   "license_card": "cc-by-sa-4.0",
+   "license_note": "CC-BY-SA-4.0 attribution + share-alike for derived files",
+   "type": "yes_no",
+   "domain": "NLI",
+   "langs": [
+    "en"
+   ],
+   "n_test": 100,
+   "n_calib": 40,
+   "downloaded_bytes": 824688
+  },
+  {
+   "key": "boolq",
+   "repo_id": "google/boolq",
+   "revision": "35b264d03638db9f4ce671b711558bf7ff0f80d5",
+   "url": "https://huggingface.co/datasets/google/boolq",
+   "files": [
+    {
+     "path": "data/validation-00000-of-00001.parquet",
+     "bytes": 1257630
+    },
+    {
+     "path": "data/train-00000-of-00001.parquet",
+     "bytes": 3685146
+    }
+   ],
+   "license_card": "cc-by-sa-3.0",
+   "license_note": "CC-BY-SA-3.0 attribution + share-alike for derived files",
+   "type": "yes_no",
+   "domain": "reading-comprehension QA",
+   "langs": [
+    "en"
+   ],
+   "n_test": 80,
+   "n_calib": 40,
+   "downloaded_bytes": 4942776
+  },
+  {
+   "key": "mmlu",
+   "repo_id": "cais/mmlu",
+   "revision": "c30699e8356da336a370243923dbaf21066bb9fe",
+   "url": "https://huggingface.co/datasets/cais/mmlu",
+   "files": [
+    {
+     "path": "all/test-00000-of-00001.parquet",
+     "bytes": 3504718
+    },
+    {
+     "path": "all/dev-00000-of-00001.parquet",
+     "bytes": 76504
+    }
+   ],
+   "license_card": "mit",
+   "license_note": "MIT attribution",
+   "type": "choice",
+   "domain": "knowledge MCQ",
+   "langs": [
+    "en"
+   ],
+   "n_test": 130,
+   "n_calib": 52,
+   "downloaded_bytes": 3581222
+  },
+  {
+   "key": "global_mmlu",
+   "repo_id": "CohereLabs/Global-MMLU",
+   "revision": "0e619dbeb34206cd48705a1a0ea7fb21cae09993",
+   "url": "https://huggingface.co/datasets/CohereLabs/Global-MMLU",
+   "files": [
+    {
+     "path": "hi/test-00000-of-00001.parquet",
+     "bytes": 6140551
+    },
+    {
+     "path": "hi/dev-00000-of-00001.parquet",
+     "bytes": 126747
+    },
+    {
+     "path": "bn/test-00000-of-00001.parquet",
+     "bytes": 6200091
+    },
+    {
+     "path": "bn/dev-00000-of-00001.parquet",
+     "bytes": 124597
+    },
+    {
+     "path": "te/test-00000-of-00001.parquet",
+     "bytes": 6250157
+    },
+    {
+     "path": "te/dev-00000-of-00001.parquet",
+     "bytes": 131039
+    }
+   ],
+   "license_card": "apache-2.0",
+   "license_note": "Apache-2.0 attribution",
+   "type": "choice",
+   "domain": "knowledge MCQ",
+   "langs": [
+    "hi",
+    "bn",
+    "te"
+   ],
+   "n_test": 120,
+   "n_calib": 45,
+   "downloaded_bytes": 18973182
+  },
+  {
+   "key": "sib200",
+   "repo_id": "Davlan/sib200",
+   "revision": "38977a667f6fc264d5c26ec57a01e16db040b358",
+   "url": "https://huggingface.co/datasets/Davlan/sib200",
+   "files": [
+    {
+     "path": "data/eng_Latn/test.tsv",
+     "bytes": 30069
+    },
+    {
+     "path": "data/eng_Latn/train.tsv",
+     "bytes": 102878
+    },
+    {
+     "path": "data/hin_Deva/test.tsv",
+     "bytes": 71994
+    },
+    {
+     "path": "data/hin_Deva/train.tsv",
+     "bytes": 245738
+    },
+    {
+     "path": "data/ben_Beng/test.tsv",
+     "bytes": 72534
+    },
+    {
+     "path": "data/ben_Beng/train.tsv",
+     "bytes": 252333
+    },
+    {
+     "path": "data/tam_Taml/test.tsv",
+     "bytes": 89257
+    },
+    {
+     "path": "data/tam_Taml/train.tsv",
+     "bytes": 302004
+    },
+    {
+     "path": "data/eng_Latn/labels.txt",
+     "bytes": 73
+    }
+   ],
+   "license_card": "cc-by-sa-4.0",
+   "license_note": "CC-BY-SA-4.0 attribution + share-alike for derived files",
+   "type": "choice",
+   "domain": "topic classification",
+   "langs": [
+    "en",
+    "hi",
+    "bn",
+    "ta"
+   ],
+   "n_test": 120,
+   "n_calib": 48,
+   "downloaded_bytes": 1166880
+  },
+  {
+   "key": "dbpedia14",
+   "repo_id": "fancyzhx/dbpedia_14",
+   "revision": "9abd46cf7fc8b4c64290f26993c540b92aa145ac",
+   "url": "https://huggingface.co/datasets/fancyzhx/dbpedia_14",
+   "files": [
+    {
+     "path": "dbpedia_14/test-00000-of-00001.parquet",
+     "bytes": 13272475
+    }
+   ],
+   "license_card": "cc-by-sa-3.0",
+   "license_note": "CC-BY-SA-3.0 attribution + share-alike for derived files",
+   "type": "choice",
+   "domain": "topic / entity type",
+   "langs": [
+    "en"
+   ],
+   "n_test": 70,
+   "n_calib": 25,
+   "downloaded_bytes": 13272475
+  },
+  {
+   "key": "when2call",
+   "repo_id": "nvidia/When2Call",
+   "revision": "0582f7749df63a96fdc3070932e83e72396ace53",
+   "url": "https://huggingface.co/datasets/nvidia/When2Call",
+   "files": [
+    {
+     "path": "test/when2call_test_mcq.jsonl",
+     "bytes": 20424385
+    }
+   ],
+   "license_card": "cc-by-4.0",
+   "license_note": "CC-BY-4.0 attribution required",
+   "type": "choice",
+   "domain": "tool-use decision",
+   "langs": [
+    "en"
+   ],
+   "n_test": 70,
+   "n_calib": 20,
+   "downloaded_bytes": 20424385
+  }
+ ],
+ "rejected": [
+  {
+   "repo_id": "stanfordnlp/sst2",
+   "reason": "card licence 'unknown'"
+  },
+  {
+   "repo_id": "fancyzhx/ag_news",
+   "reason": "card licence 'unknown'"
+  },
+  {
+   "repo_id": "stanfordnlp/imdb",
+   "reason": "card licence 'other'"
+  },
+  {
+   "repo_id": "yelp_polarity",
+   "reason": "no licence"
+  },
+  {
+   "repo_id": "cardiffnlp/tweet_eval",
+   "reason": "licence unknown"
+  },
+  {
+   "repo_id": "ai4bharat/IndicXNLI",
+   "reason": "card says cc0 but text says CC BY-NC 4.0 (conflict)"
+  },
+  {
+   "repo_id": "ai4bharat/IndicSentiment",
+   "reason": "no licence stated"
+  },
+  {
+   "repo_id": "facebook/xnli",
+   "reason": "CC BY-NC"
+  },
+  {
+   "repo_id": "allenai/wildguardmix",
+   "reason": "gated (auto); HF login required"
+  },
+  {
+   "repo_id": "cais/hle",
+   "reason": "gated; images ~1 GB"
+  }
+ ],
+ "total_downloaded_bytes": 221238244,
+ "notes": "licences read from the HF dataset card (cardData.license) at download time"
+}

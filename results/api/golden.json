@@ -1,0 +1,52 @@
+{
+ "answers": {
+  "team": {
+   "type": "choice",
+   "choice": "billing",
+   "confidence": 0.9737637042999268,
+   "probabilities": {
+    "billing": 0.9825091361999512,
+    "tech": 0.009036247618496418,
+    "delivery": 0.008454609662294388
+   }
+  },
+  "urgent": {
+   "type": "noul",
+   "noul": 0.3692600131034851
+  },
+  "anger": {
+   "type": "score",
+   "score": 1.8088978976011276,
+   "confidence": 0.48290472105145454,
+   "legend": {
+    "0": "calm",
+    "1": "annoyed",
+    "2": "angry",
+    "3": "furious"
+   },
+   "probabilities": {
+    "0": 0.030670342966914177,
+    "1": 0.2927580177783966,
+    "2": 0.5135750770568848,
+    "3": 0.1629965752363205
+   }
+  }
+ },
+ "published": {
+  "team": {
+   "billing": 0.986,
+   "tech": 0.007,
+   "delivery": 0.006
+  },
+  "urgent": {
+   "yes": 0.45
+  },
+  "anger": {
+   "0": 0.032,
+   "1": 0.267,
+   "2": 0.51,
+   "3": 0.191
+  }
+ },
+ "max_abs_delta_vs_published": 0.0807399868965149
+}

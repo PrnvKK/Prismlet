@@ -1,0 +1,8 @@
+{
+ "n": 32,
+ "bytes": 29029090688,
+ "expected_bytes": 29029003136,
+ "relative_error": 3.016018138474185e-06,
+ "expert_slab_ok": true,
+ "identity_check": true
+}

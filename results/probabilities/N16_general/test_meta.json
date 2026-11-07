@@ -1,0 +1,11 @@
+{
+ "variant": "N16_general",
+ "split": "test",
+ "n": 1200,
+ "shards": 8,
+ "seconds": 2123.138715028763,
+ "tokens": 197585,
+ "tokens_per_s": 93.06268996998779,
+ "peak_rss_gb": 11.87,
+ "minutes": 35.38564525047938
+}

@@ -1,0 +1,164 @@
+{
+ "geometry": {
+  "base": {
+   "n_pixels": 63,
+   "argmax_agreement": 0.9682539682539683,
+   "mean_kl": 0.026075330980093507,
+   "mean_tv": 0.046528360756513266,
+   "pixel_acc": 0.7301587301587301,
+   "tokens_per_s": 70.09446876384979,
+   "seconds": 170.59833979606628
+  },
+  "layer_skip": {
+   "skip2": {
+    "n_pixels": 63,
+    "argmax_agreement": 0.7142857142857143,
+    "mean_kl": 0.41413133218169373,
+    "mean_tv": 0.2588920299839672,
+    "pixel_acc": 0.6507936507936508,
+    "tokens_per_s": 73.77893761433087,
+    "seconds": 162.07877731323242,
+    "layers": [
+     20,
+     28
+    ],
+    "delta_agree_vs_unskipped": -0.25396825396825395,
+    "delta_kl_vs_unskipped": 0.3880560012016002
+   },
+   "skip4": {
+    "n_pixels": 63,
+    "argmax_agreement": 0.7301587301587301,
+    "mean_kl": 0.46557184006254493,
+    "mean_tv": 0.2828229135881725,
+    "pixel_acc": 0.6349206349206349,
+    "tokens_per_s": 69.91798426470449,
+    "seconds": 171.0289580821991,
+    "layers": [
+     20,
+     25,
+     28,
+     29
+    ],
+    "delta_agree_vs_unskipped": -0.23809523809523814,
+    "delta_kl_vs_unskipped": 0.4394965090824514
+   }
+  }
+ },
+ "ranking": {
+  "general_n16": {
+   "TOTAL": {
+    "n": 1200,
+    "argmax_agreement": 0.6633333333333333,
+    "mean_kl": 0.514838591837587,
+    "mean_tv": 0.29630677393196436,
+    "acc": 0.6308333333333334,
+    "acc_full": 0.8191666666666667,
+    "acc_drop_pp": 18.833333333333336
+   },
+   "REAP": {
+    "n": 1200,
+    "argmax_agreement": 0.6341666666666667,
+    "mean_kl": 0.5960453356519089,
+    "mean_tv": 0.34942664368124793,
+    "acc": 0.5925,
+    "acc_full": 0.8191666666666667,
+    "acc_drop_pp": 22.666666666666668
+   }
+  },
+  "geometry_n32_quick": {
+   "TOTAL": {
+    "n_pixels": 63,
+    "argmax_agreement": 0.9682539682539683,
+    "mean_kl": 0.026075330980093507,
+    "mean_tv": 0.046528360756513266,
+    "pixel_acc": 0.7301587301587301,
+    "tokens_per_s": 70.09446876384979,
+    "seconds": 170.59833979606628
+   },
+   "REAP": {
+    "n_pixels": 63,
+    "argmax_agreement": 0.937,
+    "mean_kl": 0.1225,
+    "pixel_acc": 0.698
+   },
+   "note": "TOTAL and REAP measured on the same 63 held-out geometry pixels; the REAP entry is the summary recorded during the ranking comparison."
+  }
+ },
+ "calibration_domain": {
+  "general_test": {
+   "general_calibrated": {
+    "N32": {
+     "n": 1200,
+     "argmax_agreement": 0.775,
+     "mean_kl": 0.28656026398097334,
+     "mean_tv": 0.19493641404464634,
+     "acc": 0.7091666666666666,
+     "acc_full": 0.8191666666666667,
+     "acc_drop_pp": 11.00000000000001
+    },
+    "N16": {
+     "n": 1200,
+     "argmax_agreement": 0.6633333333333333,
+     "mean_kl": 0.514838591837587,
+     "mean_tv": 0.29630677393196436,
+     "acc": 0.6308333333333334,
+     "acc_full": 0.8191666666666667,
+     "acc_drop_pp": 18.833333333333336
+    }
+   },
+   "geometry_calibrated": {
+    "N32": {
+     "n": 1200,
+     "argmax_agreement": 0.6508333333333334,
+     "mean_kl": 0.5626393602862579,
+     "mean_tv": 0.3111623665446513,
+     "acc": 0.6158333333333333,
+     "acc_full": 0.8191666666666667,
+     "acc_drop_pp": 20.333333333333336
+    },
+    "N16": {
+     "n": 1200,
+     "argmax_agreement": 0.5741666666666667,
+     "mean_kl": 0.7534927836520368,
+     "mean_tv": 0.4091347388485324,
+     "acc": 0.55,
+     "acc_full": 0.8191666666666667,
+     "acc_drop_pp": 26.916666666666668
+    }
+   }
+  },
+  "geometry_test": {
+   "general_calibrated": {
+    "N32": {
+     "n_pixels": 63,
+     "argmax_agreement": 0.6984126984126984,
+     "mean_kl": 0.5778754575116073,
+     "mean_tv": 0.3068226689864541,
+     "pixel_acc": 0.5873015873015873,
+     "tokens_per_s": 94.12467076343249,
+     "seconds": 127.04426908493042
+    },
+    "N16": {
+     "n_pixels": 63,
+     "argmax_agreement": 0.47619047619047616,
+     "mean_kl": 1.365009241076177,
+     "mean_tv": 0.5021278048728756,
+     "pixel_acc": 0.4444444444444444,
+     "tokens_per_s": 74.85768984249225,
+     "seconds": 159.74310755729675
+    }
+   },
+   "geometry_calibrated": {
+    "N32": {
+     "n_pixels": 63,
+     "argmax_agreement": 0.9682539682539683,
+     "mean_kl": 0.026075330980093507,
+     "mean_tv": 0.046528360756513266,
+     "pixel_acc": 0.7301587301587301,
+     "tokens_per_s": 70.09446876384979,
+     "seconds": 170.59833979606628
+    }
+   }
+  }
+ }
+}

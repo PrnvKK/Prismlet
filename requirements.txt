@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/xpu
+torch==2.9.1+xpu
+numpy==2.4.6
+tokenizers==0.22.2
+safetensors==0.8.0
+pyarrow==26.0.1
+psutil==7.2.2
+requests==2.34.2
+huggingface_hub==1.21.0
+pytest==9.2.0

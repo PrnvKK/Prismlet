@@ -1,0 +1,77 @@
+{
+ "torch_version": "2.9.1+xpu",
+ "xpu_available": true,
+ "ram_bytes": 33873780736,
+ "bf16_1024_ok_rel": 0.0031632648315280676,
+ "bf16_tflops": {
+  "4096x4096x4096": "12.860",
+  "256x4096x2048": "2.890",
+  "256x2048x4096": "3.961",
+  "1024x4096x4096": "11.603",
+  "64x4096x4096": "2.743",
+  "8192x4096x4096": "13.772"
+ },
+ "fp32_tflops": {
+  "4096x4096x4096": "2.142",
+  "256x4096x2048": "1.710"
+ },
+ "memcpy_gbps": 2.078268546582687,
+ "h2d_gbps": 0.7924314707316225,
+ "largest_alloc_gib": 6,
+ "disk": [
+  {
+   "threads": 1,
+   "block_mb": 16,
+   "gbps": 0.3385239366951735
+  },
+  {
+   "threads": 1,
+   "block_mb": 64,
+   "gbps": 0.3870163571199744
+  },
+  {
+   "threads": 2,
+   "block_mb": 16,
+   "gbps": 0.8431019227797384
+  },
+  {
+   "threads": 2,
+   "block_mb": 64,
+   "gbps": 0.7591004201600214
+  },
+  {
+   "threads": 4,
+   "block_mb": 16,
+   "gbps": 0.8895643902620307
+  },
+  {
+   "threads": 4,
+   "block_mb": 64,
+   "gbps": 1.0153465880238528
+  },
+  {
+   "threads": 8,
+   "block_mb": 16,
+   "gbps": 1.112121317851607
+  },
+  {
+   "threads": 8,
+   "block_mb": 64,
+   "gbps": 1.2147559537150132
+  }
+ ],
+ "disk_cached_gbps": 1.2357558908205903,
+ "disk_best": {
+  "threads": 8,
+  "block_mb": 64,
+  "gbps": 1.2147559537150132
+ },
+ "disk_gbps": 1.2147559537150132,
+ "float8_e4m3fn": "torch.float8_e4m3fn",
+ "fp8_cast_xpu_ok": true,
+ "python": "3.11",
+ "device_name": "Intel(R) Arc(TM) 140V GPU (16GB)",
+ "driver_version": "1.6.34541",
+ "total_memory_mb": 16858,
+ "max_compute_units": 64
+}

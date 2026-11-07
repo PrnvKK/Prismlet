@@ -1,0 +1,45 @@
+{
+ "mode": "disk",
+ "device": "xpu",
+ "disk_floor_s": 77.2,
+ "disk_gbps": 1.3758584903626943,
+ "golden_seconds": 151.0,
+ "by_batch": [
+  {
+   "n": 3,
+   "tokens": 402,
+   "total_s": 134.8,
+   "compute_s": 57.60000000000001,
+   "tokens_per_s": 2.982195845697329,
+   "eff_tflops": 0.1433102083333333
+  },
+  {
+   "n": 16,
+   "tokens": 2162,
+   "total_s": 146.3,
+   "compute_s": 69.10000000000001,
+   "tokens_per_s": 14.777853725222146,
+   "eff_tflops": 0.642467554269175
+  },
+  {
+   "n": 64,
+   "tokens": 8662,
+   "total_s": 270.5,
+   "compute_s": 193.3,
+   "tokens_per_s": 32.02218114602588,
+   "eff_tflops": 0.9201526539058458
+  }
+ ],
+ "best_config": {
+  "device": "xpu",
+  "mode": "disk",
+  "dtype": "bfloat16",
+  "max_tokens_mb": 4096,
+  "nthreads": 8,
+  "prefetch": true,
+  "dequant_backend": "lut"
+ },
+ "best_tokens_per_s": 32.02218114602588,
+ "best_n": 64,
+ "best_eff_tflops": 0.9201526539058458
+}

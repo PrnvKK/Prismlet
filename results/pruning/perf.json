@@ -1,0 +1,208 @@
+{
+ "measured": [
+  {
+   "tag": "cpu_n16",
+   "variant": "N16_general",
+   "mode": "ram",
+   "device": "cpu",
+   "batch": 3,
+   "tokens": 419,
+   "total_s": 63.20874071121216,
+   "compute_s": 63.12552762031555,
+   "tokens_per_s": 6.628830052386671,
+   "eff_tflops": 0.13629582712954744,
+   "peak_rss_gb": 18.54,
+   "xpu_peak_gb": 0.0,
+   "disk_floor_s": 13.654925507438017,
+   "first_pass_load_s": 11.02970027923584
+  },
+  {
+   "tag": "n16_general_disk",
+   "variant": "N16_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 1,
+   "tokens": 136,
+   "total_s": 21.29463243484497,
+   "compute_s": 12.874568462371826,
+   "tokens_per_s": 6.386585935029317,
+   "eff_tflops": 0.21691010523280305,
+   "peak_rss_gb": 4.49,
+   "xpu_peak_gb": 0.81,
+   "disk_floor_s": 13.654925507438017,
+   "first_pass_load_s": null
+  },
+  {
+   "tag": "n16_general_disk",
+   "variant": "N16_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 16,
+   "tokens": 2230,
+   "total_s": 26.207340240478516,
+   "compute_s": 23.483189821243286,
+   "tokens_per_s": 85.09066465873771,
+   "eff_tflops": 1.949940376437994,
+   "peak_rss_gb": 5.48,
+   "xpu_peak_gb": 1.35,
+   "disk_floor_s": 13.654925507438017,
+   "first_pass_load_s": null
+  },
+  {
+   "tag": "n16_general_disk",
+   "variant": "N16_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 64,
+   "tokens": 8918,
+   "total_s": 79.70533442497253,
+   "compute_s": 71.74163722991943,
+   "tokens_per_s": 111.88711601724232,
+   "eff_tflops": 2.5525234587708843,
+   "peak_rss_gb": 7.49,
+   "xpu_peak_gb": 3.06,
+   "disk_floor_s": 13.654925507438017,
+   "first_pass_load_s": null
+  },
+  {
+   "tag": "n32_general_disk",
+   "variant": "N32_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 1,
+   "tokens": 136,
+   "total_s": 33.53597068786621,
+   "compute_s": 21.004327297210693,
+   "tokens_per_s": 4.055347056025628,
+   "eff_tflops": 0.13295469835736426,
+   "peak_rss_gb": 5.56,
+   "xpu_peak_gb": 1.21,
+   "disk_floor_s": 23.99098403966942,
+   "first_pass_load_s": null
+  },
+  {
+   "tag": "n32_general_disk",
+   "variant": "N32_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 16,
+   "tokens": 2230,
+   "total_s": 45.20237183570862,
+   "compute_s": 32.70386481285095,
+   "tokens_per_s": 49.33369443765254,
+   "eff_tflops": 1.4001654013077545,
+   "peak_rss_gb": 6.55,
+   "xpu_peak_gb": 1.74,
+   "disk_floor_s": 23.99098403966942,
+   "first_pass_load_s": null
+  },
+  {
+   "tag": "n32_general_disk",
+   "variant": "N32_general",
+   "mode": "disk",
+   "device": "xpu",
+   "batch": 64,
+   "tokens": 8918,
+   "total_s": 98.56705355644226,
+   "compute_s": 85.8369734287262,
+   "tokens_per_s": 90.47647949518246,
+   "eff_tflops": 2.1333721901559537,
+   "peak_rss_gb": 8.56,
+   "xpu_peak_gb": 3.41,
+   "disk_floor_s": 23.99098403966942,
+   "first_pass_load_s": null
+  }
+ ],
+ "full_reused": {
+  "tag": "full",
+  "variant": "full",
+  "mode": "disk",
+  "device": "xpu",
+  "batch": 64,
+  "tokens_per_s": 32.02218114602588,
+  "eff_tflops": 0.9201526539058458,
+  "disk_floor_s": 77.2,
+  "by_batch": [
+   {
+    "n": 3,
+    "tokens": 402,
+    "total_s": 134.8,
+    "compute_s": 57.60000000000001,
+    "tokens_per_s": 2.982195845697329,
+    "eff_tflops": 0.1433102083333333
+   },
+   {
+    "n": 16,
+    "tokens": 2162,
+    "total_s": 146.3,
+    "compute_s": 69.10000000000001,
+    "tokens_per_s": 14.777853725222146,
+    "eff_tflops": 0.642467554269175
+   },
+   {
+    "n": 64,
+    "tokens": 8662,
+    "total_s": 270.5,
+    "compute_s": 193.3,
+    "tokens_per_s": 32.02218114602588,
+    "eff_tflops": 0.9201526539058458
+   }
+  ]
+ },
+ "cpu_run": {
+  "tag": "cpu_n16",
+  "variant": "N16_general",
+  "mode": "ram",
+  "device": "cpu",
+  "n": 3,
+  "layer_bytes": 16522459864,
+  "disk_floor_s": 13.654925507438017,
+  "torch": "2.9.1+xpu",
+  "threads": 8,
+  "runs": [
+   {
+    "batch": 3,
+    "tokens": 419,
+    "passes": [
+     {
+      "pass": 1,
+      "total_s": 74.238440990448,
+      "compute_s": 66.22573494911194,
+      "layers_s": 74.18243265151978,
+      "head_s": 0.056008338928222656,
+      "tokens_per_s": 5.643976279807806,
+      "eff_tflops": 0.12991544762185192,
+      "peak_rss_gb": 18.1,
+      "xpu_peak_gb": 0.0,
+      "disk_gbps": 0.22272739344658718
+     },
+     {
+      "pass": 2,
+      "total_s": 63.20874071121216,
+      "compute_s": 63.12552762031555,
+      "layers_s": 63.17138719558716,
+      "head_s": 0.036846160888671875,
+      "tokens_per_s": 6.628830052386671,
+      "eff_tflops": 0.13629582712954744,
+      "peak_rss_gb": 18.54,
+      "xpu_peak_gb": 0.0,
+      "disk_gbps": 0.26154973948639487
+     }
+    ],
+    "reported": {
+     "pass": 2,
+     "total_s": 63.20874071121216,
+     "compute_s": 63.12552762031555,
+     "layers_s": 63.17138719558716,
+     "head_s": 0.036846160888671875,
+     "tokens_per_s": 6.628830052386671,
+     "eff_tflops": 0.13629582712954744,
+     "peak_rss_gb": 18.54,
+     "xpu_peak_gb": 0.0,
+     "disk_gbps": 0.26154973948639487
+    },
+    "first_pass_load_s": 11.02970027923584
+   }
+  ]
+ }
+}

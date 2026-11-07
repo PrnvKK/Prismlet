@@ -1,0 +1,56 @@
+{
+ "tag": "cpu_n16",
+ "variant": "N16_general",
+ "mode": "ram",
+ "device": "cpu",
+ "n": 3,
+ "layer_bytes": 16522459864,
+ "disk_floor_s": 13.654925507438017,
+ "torch": "2.9.1+xpu",
+ "threads": 8,
+ "runs": [
+  {
+   "batch": 3,
+   "tokens": 419,
+   "passes": [
+    {
+     "pass": 1,
+     "total_s": 74.238440990448,
+     "compute_s": 66.22573494911194,
+     "layers_s": 74.18243265151978,
+     "head_s": 0.056008338928222656,
+     "tokens_per_s": 5.643976279807806,
+     "eff_tflops": 0.12991544762185192,
+     "peak_rss_gb": 18.1,
+     "xpu_peak_gb": 0.0,
+     "disk_gbps": 0.22272739344658718
+    },
+    {
+     "pass": 2,
+     "total_s": 63.20874071121216,
+     "compute_s": 63.12552762031555,
+     "layers_s": 63.17138719558716,
+     "head_s": 0.036846160888671875,
+     "tokens_per_s": 6.628830052386671,
+     "eff_tflops": 0.13629582712954744,
+     "peak_rss_gb": 18.54,
+     "xpu_peak_gb": 0.0,
+     "disk_gbps": 0.26154973948639487
+    }
+   ],
+   "reported": {
+    "pass": 2,
+    "total_s": 63.20874071121216,
+    "compute_s": 63.12552762031555,
+    "layers_s": 63.17138719558716,
+    "head_s": 0.036846160888671875,
+    "tokens_per_s": 6.628830052386671,
+    "eff_tflops": 0.13629582712954744,
+    "peak_rss_gb": 18.54,
+    "xpu_peak_gb": 0.0,
+    "disk_gbps": 0.26154973948639487
+   },
+   "first_pass_load_s": 11.02970027923584
+  }
+ ]
+}

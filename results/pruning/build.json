@@ -1,0 +1,53 @@
+{
+ "identity_check": true,
+ "variants": {
+  "N16_general": {
+   "n": 16,
+   "bytes": 16522459864,
+   "expected_bytes": 16522373056,
+   "relative_error": 5.253966830659122e-06,
+   "expert_slab_ok": true,
+   "identity_check": true
+  },
+  "N16_reap": {
+   "n": 16,
+   "bytes": 16522459864,
+   "expected_bytes": 16522459864,
+   "relative_error": 0.0,
+   "expert_slab_ok": true,
+   "identity_check": true
+  },
+  "N16_total": {
+   "n": 16,
+   "bytes": 16522459864,
+   "expected_bytes": 16522373056,
+   "relative_error": 5.253966830659122e-06,
+   "expert_slab_ok": true,
+   "identity_check": true
+  },
+  "N32_general": {
+   "n": 32,
+   "bytes": 29029090688,
+   "expected_bytes": 29029003136,
+   "relative_error": 3.016018138474185e-06,
+   "expert_slab_ok": true,
+   "identity_check": true
+  },
+  "N32_total": {
+   "n": 32,
+   "bytes": 29029090688,
+   "expected_bytes": 29029003136,
+   "relative_error": 3.016018138474185e-06,
+   "expert_slab_ok": true,
+   "identity_check": true
+  },
+  "N8_total": {
+   "n": 8,
+   "bytes": 10269144576,
+   "expected_bytes": 10269058016,
+   "relative_error": 8.429205469979108e-06,
+   "expert_slab_ok": true,
+   "identity_check": true
+  }
+ }
+}

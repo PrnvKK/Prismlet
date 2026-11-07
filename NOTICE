@@ -1,0 +1,21 @@
+Prismlet
+
+This repository contains an independent, plain-PyTorch implementation of the
+Sarvam-Prism forward pass and a study of routed-expert pruning.
+
+The input encoding, the attention mask construction and the decision-head
+arithmetic follow the official `sarvamai/prism` code, which is licensed under
+the Apache License 2.0. The corresponding parts are:
+
+  prismlet/encoder.py   input encoding and option formatting, from prism.py
+  prismlet/head.py      decision head, from prism.py
+  prismlet/rope.py      YaRN rotary tables, from modeling_sarvam_moe.py
+  prismlet/layers.py    attention and MLP arithmetic, from modeling_sarvam_moe.py
+
+The streaming loader, Intel XPU execution path, router statistics, pruning
+writer and evaluation scripts are original work.
+
+The model weights are not included and are not redistributed. They remain
+subject to the licence published with `sarvamai/prism`.
+
+Unofficial: not affiliated with or endorsed by Sarvam AI.

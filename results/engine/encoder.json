@@ -1,0 +1,33 @@
+{
+ "tags": {
+  "state": [
+   3112,
+   236787
+  ],
+  "question": [
+   107,
+   14977,
+   236787
+  ],
+  "open": [
+   107,
+   236820,
+   4485,
+   236813
+  ],
+  "close": [
+   954,
+   4485,
+   236813
+  ],
+  "answer": [
+   107,
+   7925,
+   236787
+  ]
+ },
+ "encoder_oracle_cases": 203,
+ "structural_ok": true,
+ "mask_random_cases": 300,
+ "to_options_random_cases": 200
+}

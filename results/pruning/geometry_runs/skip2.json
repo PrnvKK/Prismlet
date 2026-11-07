@@ -1,0 +1,22 @@
+{
+ "tag": "skip2",
+ "variant": "N32_total",
+ "skip": [
+  20,
+  28
+ ],
+ "topk": 8,
+ "mode": "disk",
+ "device": "xpu",
+ "seconds": 162.07877731323242,
+ "tokens": 11958,
+ "tokens_per_s": 73.77893761433087,
+ "n_pixels": 63,
+ "argmax_agreement": 0.7142857142857143,
+ "mean_kl": 0.41413133218169373,
+ "mean_tv": 0.2588920299839672,
+ "pixel_acc": 0.6507936507936508,
+ "full_pixel_acc": 0.6984126984126984,
+ "pixel_acc_drop": 4.761904761904756,
+ "source": "measured"
+}

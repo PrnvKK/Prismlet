@@ -1,0 +1,9 @@
+weights/
+pruned/
+data/
+*.safetensors
+.env
+.olauth
+__pycache__
+.venv*
+.pytest_cache/

@@ -1,0 +1,287 @@
+{
+ "seed": 20261107,
+ "n_test": 1200,
+ "n_calib": 500,
+ "tokens_test": 197585,
+ "tokens_calib": 82555,
+ "max_tokens_per_question_test": 569,
+ "max_tokens_per_question_calib": 419,
+ "counts_test": {
+  "dataset": {
+   "amazon_polarity": 80,
+   "banking77": 120,
+   "boolq": 80,
+   "civil_comments": 150,
+   "dbpedia14": 70,
+   "global_mmlu": 120,
+   "massive": 160,
+   "mmlu": 130,
+   "sib200": 120,
+   "snli": 100,
+   "when2call": 70
+  },
+  "domain": {
+   "NLI": 100,
+   "intent routing": 280,
+   "knowledge MCQ": 250,
+   "reading-comprehension QA": 80,
+   "sentiment": 80,
+   "tool-use decision": 70,
+   "topic / entity type": 70,
+   "topic classification": 120,
+   "toxicity / moderation": 150
+  },
+  "lang": {
+   "bn": 102,
+   "en": 862,
+   "hi": 102,
+   "ta": 62,
+   "te": 72
+  },
+  "type": {
+   "choice": 790,
+   "score": 150,
+   "yes_no": 260
+  }
+ },
+ "counts_calib": {
+  "dataset": {
+   "amazon_polarity": 40,
+   "banking77": 50,
+   "boolq": 40,
+   "civil_comments": 60,
+   "dbpedia14": 25,
+   "global_mmlu": 45,
+   "massive": 80,
+   "mmlu": 52,
+   "sib200": 48,
+   "snli": 40,
+   "when2call": 20
+  },
+  "domain": {
+   "NLI": 40,
+   "intent routing": 130,
+   "knowledge MCQ": 97,
+   "reading-comprehension QA": 40,
+   "sentiment": 40,
+   "tool-use decision": 20,
+   "topic / entity type": 25,
+   "topic classification": 48,
+   "toxicity / moderation": 60
+  },
+  "lang": {
+   "bn": 43,
+   "en": 355,
+   "hi": 43,
+   "ta": 28,
+   "te": 31
+  },
+  "type": {
+   "choice": 320,
+   "score": 60,
+   "yes_no": 120
+  }
+ },
+ "per_dataset": {
+  "amazon_polarity": {
+   "test": 80,
+   "calib": 40,
+   "labels": {
+    "0": 60,
+    "1": 60
+   },
+   "type": "yes_no"
+  },
+  "banking77": {
+   "test": 120,
+   "calib": 50,
+   "labels": {
+    "0": 12,
+    "1": 9,
+    "2": 13,
+    "3": 12,
+    "5": 10,
+    "4": 11,
+    "7": 12,
+    "6": 11,
+    "9": 11,
+    "10": 12,
+    "11": 10,
+    "8": 9,
+    "14": 4,
+    "12": 7,
+    "13": 7,
+    "16": 7,
+    "15": 4,
+    "17": 3,
+    "19": 5,
+    "18": 1
+   },
+   "type": "choice"
+  },
+  "boolq": {
+   "test": 80,
+   "calib": 40,
+   "labels": {
+    "0": 60,
+    "1": 60
+   },
+   "type": "yes_no"
+  },
+  "civil_comments": {
+   "test": 150,
+   "calib": 60,
+   "labels": {
+    "0": 53,
+    "1": 53,
+    "2": 52,
+    "3": 52
+   },
+   "type": "score"
+  },
+  "dbpedia14": {
+   "test": 70,
+   "calib": 25,
+   "labels": {
+    "0": 7,
+    "1": 7,
+    "2": 7,
+    "3": 7,
+    "4": 7,
+    "5": 7,
+    "6": 7,
+    "7": 7,
+    "8": 7,
+    "9": 7,
+    "10": 7,
+    "11": 6,
+    "12": 6,
+    "13": 6
+   },
+   "type": "choice"
+  },
+  "global_mmlu": {
+   "test": 120,
+   "calib": 45,
+   "labels": {
+    "0": 40,
+    "2": 41,
+    "3": 46,
+    "1": 38
+   },
+   "type": "choice"
+  },
+  "massive": {
+   "test": 160,
+   "calib": 80,
+   "labels": {
+    "0": 31,
+    "1": 29,
+    "2": 24,
+    "3": 35,
+    "4": 23,
+    "5": 28,
+    "6": 18,
+    "7": 14,
+    "10": 10,
+    "9": 7,
+    "8": 12,
+    "11": 5,
+    "12": 3,
+    "13": 1
+   },
+   "type": "choice"
+  },
+  "mmlu": {
+   "test": 130,
+   "calib": 52,
+   "labels": {
+    "0": 51,
+    "3": 53,
+    "1": 38,
+    "2": 40
+   },
+   "type": "choice"
+  },
+  "sib200": {
+   "test": 120,
+   "calib": 48,
+   "labels": {
+    "0": 28,
+    "1": 28,
+    "2": 24,
+    "3": 24,
+    "4": 24,
+    "5": 20,
+    "6": 20
+   },
+   "type": "choice"
+  },
+  "snli": {
+   "test": 100,
+   "calib": 40,
+   "labels": {
+    "1": 70,
+    "0": 70
+   },
+   "type": "yes_no"
+  },
+  "when2call": {
+   "test": 70,
+   "calib": 20,
+   "labels": {
+    "3": 30,
+    "2": 30,
+    "1": 30
+   },
+   "type": "choice"
+  }
+ },
+ "random_baseline": {
+  "amazon_polarity": 0.5,
+  "banking77": 0.05,
+  "boolq": 0.5,
+  "civil_comments": 0.25,
+  "dbpedia14": 0.0714,
+  "global_mmlu": 0.25,
+  "massive": 0.05,
+  "mmlu": 0.25,
+  "sib200": 0.1429,
+  "snli": 0.5,
+  "when2call": 0.25
+ },
+ "caps_chars": {
+  "banking77": 1000,
+  "massive": 800,
+  "amazon_polarity": 1000,
+  "civil_comments": 800,
+  "snli": 1200,
+  "boolq": 1400,
+  "mmlu": 1200,
+  "global_mmlu": 1200,
+  "sib200": 1000,
+  "dbpedia14": 800,
+  "when2call": 1200
+ },
+ "build_seconds": 26.3,
+ "overlap_src_rows": 0,
+ "overlap_normalised_text": 0,
+ "dup_normalised_all": 0,
+ "missing_label": 0,
+ "budget": {
+  "tokens_test_max": 330000,
+  "tokens_calib_max": 140000,
+  "max_tokens_per_question": 900
+ },
+ "checks": {
+  "test_count": true,
+  "calib_count": true,
+  "no_source_overlap": true,
+  "no_text_overlap": true,
+  "all_labelled": true,
+  "tokens_test": true,
+  "tokens_calib": true,
+  "max_tokens": true
+ },
+ "all_checks": true
+}

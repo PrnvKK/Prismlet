@@ -1,0 +1,11 @@
+{
+ "variant": "N8_total",
+ "split": "test",
+ "n": 1200,
+ "shards": 8,
+ "seconds": 2187.03675365448,
+ "tokens": 197585,
+ "tokens_per_s": 90.34370349279259,
+ "peak_rss_gb": 11.84,
+ "minutes": 36.450612560908
+}

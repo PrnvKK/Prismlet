@@ -1,0 +1,11 @@
+{
+ "variant": "N16_reap",
+ "split": "test",
+ "n": 1200,
+ "shards": 8,
+ "seconds": 1916.4251544475555,
+ "tokens": 197585,
+ "tokens_per_s": 103.10081744724201,
+ "peak_rss_gb": 11.92,
+ "minutes": 31.940419240792593
+}
