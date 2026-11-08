@@ -20,6 +20,10 @@
 \setlength{\parskip}{0.35em}
 \setlength{\parindent}{0pt}
 \renewcommand{\arraystretch}{1.08}
+\renewcommand{\topfraction}{0.92}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.08}
+\renewcommand{\floatpagefraction}{0.75}
 
 \title{\textbf{Prism on a Laptop:}\\[0.25em]
 \large Streaming Inference of a 105B FP8 Mixture-of-Experts Decision Model\\[0.25em]
@@ -31,91 +35,93 @@
 \maketitle
 
 \begin{abstract}
-Prism is a 105B-parameter mixture-of-experts decision model that returns a probability for every option of a typed question in one forward pass. Its FP8 weights occupy 106.2\,GB and the published implementation assumes a datacentre GPU with about 120\,GB of memory. We ask two questions: whether the model can run correctly on a laptop, and how much of it is needed. We build a streaming engine that reads one decoder layer at a time from an NVMe SSD and computes on an Intel Arc 140V integrated GPU. Because a decision needs no decode loop, each layer is read once per batch, and batches amortise the read cost. The full model reaches 32.02 tokens per second at batch size 64 and reproduces the argmax of the model card example, with a maximum absolute probability gap of 0.041383. Against the hosted API, the full model agrees on 0.9267 of 1,200 questions with mean KL 0.0474. We then remove routed experts by router saliency. Keeping 32 of 128 experts gives 0.7750 argmax agreement with the full model, but the loss is uneven: NLI, sentiment and intent routing stay above 0.90 agreement, while knowledge multiple choice falls to 0.4080 and Hindi, Bengali and Telugu fall to 0.6275, 0.6373 and 0.5833. The calibration domain matters more than the ranking rule: geometry-calibrated experts score 0.9683 on held-out geometry questions but 0.6508 on general questions. Classification-style decisions survive aggressive expert pruning; knowledge and multilingual decisions do not.
+Prism is a 105B-parameter mixture-of-experts decision model that scores every option of a typed question in one forward pass. We show that it runs correctly on a laptop with an Intel Arc 140V integrated GPU, and that keeping 32 of its 128 routed experts preserves some tasks but not others. A streaming engine reads one decoder layer at a time from an NVMe SSD and runs the 106.2\,GB FP8 model at 32 tokens per second at batch size 64. It matches an FP32 reference, reproduces the model card's choices, and agrees with the hosted API on 93\% of 1,200 questions. The pruned model keeps 78\% of the full model's decisions overall. NLI, sentiment and intent routing stay above 90\%, while knowledge multiple choice falls to 41\% and Hindi, Bengali and Telugu fall below 65\%. The calibration domain matters more than the ranking rule.
 \end{abstract}
 
 \section{Introduction}
 
-A decision model answers a question whose options are fixed in advance. It returns one probability per option in a single forward pass and never generates text. This interface fits routing, triage, moderation and scoring, where the set of answers is known and a calibrated probability is more useful than a sentence \citep{sarvam2026prism}. Prism is such a model, built on the 105B-parameter Sarvam mixture-of-experts backbone. Its released weights are FP8, occupy 106.2\,GB, and the model card asks for one GPU with about 120\,GB of memory. A laptop has 16\,GB of shared graphics memory and 32\,GB of system RAM. The first question of this report is whether the model can run correctly on that laptop.
+A decision model answers a question whose options are fixed in advance. It returns one probability per option in a single forward pass and never generates text \citep{sarvam2026prism}. Prism is such a model, built on the 105B-parameter Sarvam mixture-of-experts backbone. Its FP8 weights occupy 106.2\,GB and the model card asks for a GPU with about 120\,GB of memory, while the laptop used here has 16\,GB of shared graphics memory and 32\,GB of RAM. The obstacle is memory, not arithmetic, so the weights must be streamed from disk. Offloading systems for generative inference do this, but they pay the read cost again for every generated token \citep{aminabadi2022deepspeed,sheng2023flexgen,song2024powerinfer}. A decision model has no decode loop, so each layer is read once per batch and batch size controls how far the read is amortised.
 
-The obstacle is memory, not arithmetic. The model is larger than the machine, so the weights must be read from disk. Offloading systems for generative inference already do this, but they are designed around a decode loop: each generated token needs another pass through every weight, and the KV cache grows with the sequence \citep{aminabadi2022deepspeed,sheng2023flexgen,song2024powerinfer}. A decision model removes that loop. One request produces all option probabilities at once, so each layer's weights are read once per batch and the read cost is shared by every question in the batch. This difference makes a simple layer-streaming design practical: keep one decoder layer on the device, prefetch the next from an NVMe SSD, and discard it after use. The disk floor becomes the lower bound on latency, and batch size becomes the control that amortises it.
+Correctness is a separate problem. Prism uses a nonstandard attention mask, multi-head latent attention, a sigmoid-routed mixture of experts and FP8 weights with per-row scales \citep{micikevicius2022fp8}. The integrated GPU has no FP8 matrix multiply, so the engine dequantises just in time and emulates FP8 activations in BF16. We compare the engine with an independent FP32 CPU reference layer by layer, and the full model with the hosted API on 1,200 test questions.
 
-Correctness is a separate problem. Prism does not use a standard causal mask: the context is bidirectional, options share positions and cannot attend to each other, and an answer marker attends to the context and all options. The attention is a multi-head latent representation, the MoE router selects 8 of 128 experts with sigmoid scores, and the weights are FP8 with per-row scales \citep{micikevicius2022fp8}. The integrated GPU has no FP8 matrix multiply, so the engine dequantises weights just in time and emulates FP8 activation quantisation in BF16. We therefore compare the engine with an independent FP32 CPU reference layer by layer, and the full model with the hosted API on 1,200 test questions.
+The second question is how much of the model is needed. We rank experts by router statistics from a calibration set, rewrite the router and expert tensors, and measure the pruned model against the full model while varying the number of experts, the ranking rule, the calibration domain and the number of decoder layers. Table~\ref{tab:summary} gives the main results.
 
-The second question is how much of the model is needed. Prism routes each token to 8 of 128 experts in every MoE layer, and the routed experts account for 99,988,013,056 of the 106,216,275,456 weight bytes. We rank experts by router statistics collected on a calibration set, rewrite the router and expert tensors, and measure the pruned model against the full model. We vary the number kept, the ranking rule, the calibration domain, and the number of decoder layers. The measurements separate tasks that survive pruning from tasks that do not, and they show that the calibration distribution matters more than the ranking rule.
+The report makes three contributions:
+\begin{itemize}
+\item A streaming engine that runs the full 106.2\,GB model on a laptop integrated GPU, with layer prefetch, lookup-table dequantisation, the Prism attention mask and a CPU decision head.
+\item A verification against an FP32 reference and the hosted API, including an account of a gap to the model card example.
+\item A controlled expert-pruning study over 1,200 test questions in nine domains and five languages, which separates tasks that survive pruning from tasks that do not.
+\end{itemize}
 
-The report makes three contributions. First, it describes a streaming engine that runs the full 106.2\,GB model on a laptop integrated GPU, with layer prefetch, lookup-table dequantisation, the Prism attention mask, and a CPU decision head. Second, it verifies the engine against an FP32 reference and the hosted API, including an honest account of a 0.041383 gap to the model card example. Third, it reports a controlled expert-pruning study over 1,200 test questions in nine domains and five languages. The main measurement is that keeping 32 of 128 experts preserves classification-style decisions (NLI 0.9800, sentiment 0.9875, intent routing 0.9036) but not knowledge multiple choice (0.4080) or Hindi, Bengali and Telugu (0.6275, 0.6373 and 0.5833). At 16 experts, overall agreement falls to 0.6633 and the accuracy drop grows from 11.00 to 18.83 percentage points.
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Summary of results. Values are copied from the tables and text of later sections.}
+\label{tab:summary}
+\begin{tabular}{p{5.6cm}p{10.4cm}}
+\toprule
+Check & Result \\
+\midrule
+Engine vs FP32 reference & Relative L2 after layers 0 and 1: $3.40\times10^{-7}$ and $3.92\times10^{-7}$ in FP32, $2.92\times10^{-3}$ and $3.78\times10^{-3}$ in BF16 \\
+Model card example & Same argmax choices; maximum gap 0.041383 \\
+Hosted API, 1,200 questions & Agreement 0.9267, mean KL 0.0474 \\
+Throughput, full model, batch 64 & 32.02 tokens/s on the iGPU, streamed from disk \\
+$N=32$, classification domains & Agreement: NLI 0.9800, sentiment 0.9875, intent routing 0.9036 \\
+$N=32$, knowledge MCQ and languages & Agreement: knowledge MCQ 0.4080; Hindi 0.6275, Bengali 0.6373, Telugu 0.5833 \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{Background}
 
-Prism is a decision model built on the Sarvam 105B mixture-of-experts backbone \citep{sarvam2026prism}. A request contains a state (text or compact JSON), one or more typed questions, and the options for each question. The encoder writes the state and question once, then lays out each option as its own span. Context tokens carry a segment embedding for the state or question, option tokens carry an option segment embedding, and the answer marker has its own segment. The decision head reads the hidden state at the closing token of each option and at the answer marker. This layout is the model's interface, so the engine transcribes the encoder rather than approximating it.
+Prism encodes a request as a shared context (the state and the question) followed by one span per option. The decision head reads the hidden state at each option's closing token and at an answer marker. This layout is the model's interface, so the engine transcribes the encoder rather than approximating it.
 
-The attention mask follows the same layout. Context tokens attend to each other bidirectionally; each option attends to the context and its own tokens but not to other options; the answer marker attends to the context and every option. Options start at the same position and are mutually invisible, so they form a tree with a shared trunk. The mask is applied inside the attention softmax, and the answer token is the only place where option representations meet. Figure~\ref{fig:mask} shows the layout.
+The attention mask follows the layout. Context tokens attend to each other bidirectionally; each option attends to the context and its own tokens but not to other options; the answer marker attends to the context and every option (Figure~\ref{fig:mask}). Options share start positions, so they form a tree with a shared trunk, and the answer token is the only place where option representations meet.
 
-The backbone uses multi-head latent attention: queries and keys are split into a non-positional part and a rotary part, keys and values are compressed through a low-rank latent, and YaRN rotary tables extend the position range. Each of the 32 decoder layers has an attention block and an MLP block. Layer 0 is dense; layers 1 to 31 are sparse MoE layers with 128 routed experts and one shared expert. The router computes sigmoid scores, adds a correction bias, selects the top 8 experts, and normalises the selected weights to a fixed routed scale. The model stores routed experts in FP8 E4M3 with a per-row FP32 scale; embeddings and normalisation weights are BF16, and the router is FP32. The engine reproduces this mixed precision rather than casting the model to a single dtype.
+The backbone uses multi-head latent attention \citep{deepseek2024v2}, with keys and values compressed through a low-rank latent, and YaRN rotary tables. Layer 0 of the 32 decoder layers is dense; layers 1 to 31 are sparse MoE layers with 128 routed experts and one shared expert. The router adds a correction bias to sigmoid scores, selects the top 8 experts and normalises their weights. Routed experts are stored in FP8 E4M3 with a per-row FP32 scale; embeddings and normalisation weights are BF16, and the router is FP32. The engine reproduces this mixed precision.
 
-The decision head receives the hidden state of each option's closing token and the answer marker, adds a learned question-type embedding, and applies two single-head self-attention blocks without positional encoding. The score of an option is the dot product between its output slot and the answer slot, scaled by the square root of the head width, followed by a softmax over options. Because the head has no positional encoding and the options share positions and cannot see each other, permuting the options permutes the output probabilities without changing them. This property is a useful test of the whole engine: if the encoder, mask or head is wrong, option-order invariance usually breaks.
+The decision head applies two single-head self-attention blocks without positional encoding and scores each option by a scaled dot product with the answer slot. Because options share positions and cannot see each other, permuting the options only permutes the probabilities. A wrong encoder, mask or head usually breaks this invariance, so it tests the whole engine.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.62\linewidth]{figures/prism_mask.pdf}
+\includegraphics[width=\linewidth]{figures/prism_mask.pdf}
 \caption{Input layout and attention mask for one question with two options. Context tokens attend bidirectionally; each option attends to the context and to its own tokens but not to the other option; the answer marker attends to the context and both options. Options share a start position, so they form branches of a tree. The decision head reads the closing token of each option and the answer marker.}
 \label{fig:mask}
 \end{figure}
 
 \section{Streaming Inference Engine}
 
-The engine reads the weights one decoder layer at a time. The backbone is split across 33 safetensors files: one embedding file and 32 decoder-layer files. The decision head is a separate file. The embedding file is 2.15\,GB, layer 0 is 0.30\,GB, and each MoE layer is 3.35\,GB. A layer is staged in a pinned host buffer by 8 reader threads with 64\,MB reads, copied to the integrated GPU, and released after its activations are computed. A background reader fills the next buffer while the current layer computes, so the disk read of layer $i+1$ overlaps the arithmetic of layer $i$. The device holds one layer's weights and the current activations, never the full model.
+The engine keeps one decoder layer on the device and overlaps the disk read of the next layer with the computation of the current one (Figure~\ref{fig:engine}). The backbone is split across 33 safetensors files (one embedding file and 32 decoder-layer files), and each MoE layer is 3.35\,GB. A layer is staged in a pinned host buffer by 8 reader threads with 64\,MB reads, copied to the integrated GPU and released after use.
 
-This schedule is practical because a decision model has no decode loop. A generative model visits every layer once per generated token, so streaming would pay the read cost repeatedly and the KV cache would grow with the output. Prism produces all option probabilities in one forward pass. Every layer's weights are read exactly once per batch, and the same read serves every question in the batch. On the measured laptop the SSD delivers 1.2148\,GB/s with 8 threads and 64\,MB blocks, so one full pass of 104,068,783,616 layer bytes has a floor of 77.2\,s. The three-question example takes 210.8\,s in FP8-emulation mode, and most of the additional time is computation rather than I/O.
+This schedule works because a decision model has no decode loop. A generative model visits every layer once per generated token, so streaming would pay the read cost repeatedly. Prism produces all option probabilities in one pass, so every layer is read once per batch and the read serves every question in the batch. The SSD delivers 1.2148\,GB/s with 8 threads and 64\,MB blocks, so one pass over 104,068,783,616 layer bytes has a floor of 77.2\,s. Most of the time beyond that floor is computation, not I/O.
 
-FP8 weights are dequantised with a lookup table. A 256-entry table maps each E4M3 byte to its exact value; 254 codes are finite, the largest finite value is 448.0 and the smallest positive value is 0.001953125. The alternative is a native cast to BF16, which the integrated GPU supports but which is slower in the measured reader loop: the lookup table reaches 0.8458\,GB/s, the native cast 0.5063\,GB/s and a bit-manipulation path 0.1041\,GB/s. The table is exact for finite codes and produces the same values as the native cast. Routed experts are dequantised one expert at a time, after the router has selected the experts for the tokens in the batch, which keeps the peak device allocation small.
+FP8 weights are dequantised with a 256-entry lookup table that gives the same values as a native BF16 cast and reads faster (Appendix~\ref{app:details}). Routed experts are dequantised one at a time after the router has selected them, which keeps the peak device allocation small. Attention applies the Prism mask to chunked scores, which bounds the attention matrix without changing the result. The MoE block runs one grouped matrix multiply per non-empty expert, then the shared expert, and accumulates routed outputs in FP32 before a single cast to BF16. The decision head and final RMSNorm run on the CPU in FP32, matching the reference precision.
 
-Attention follows the Prism mask. The engine keeps the RoPE tables on the device, projects queries, keys and values through the latent representation, applies rotary embeddings to the positional part, and computes the attention scores in chunks over the batch. Chunking bounds the attention matrix, whose size grows with the square of the sequence length, and does not change the result. The mask is a boolean matrix built from token roles, and the softmax is taken over allowed keys only. The attention workspace is discarded after each layer.
+The integrated GPU has no FP8 matrix multiply, so activations are quantised to the E4M3 grid only in emulation mode. After an out-of-memory error the Intel driver did not return the device to a usable state, so all GPU runs use a fresh process and the engine checks free memory before allocating a layer.
 
-The MoE block routes tokens, sorts them by expert, and runs one grouped matrix multiply per non-empty expert, followed by the shared expert. The routed outputs are accumulated in FP32 and cast to BF16 once, which avoids compounding rounding across the eight selected experts. The router itself runs in FP32. The same code path collects router statistics when the engine is used for calibration, so the pruning study uses the router decisions of the full model.
-
-The decision head runs on the CPU in FP32. It reads the final hidden state at each option's closing token and at the answer marker, applies the two attention blocks, and returns a softmax over options. Keeping the head on the CPU avoids a separate device kernel for a small computation and guarantees that the probabilities are produced in the same precision as the reference. The final RMSNorm is also applied on the CPU.
-
-Two hardware details shaped the implementation. The integrated GPU shares system RAM with the CPU and has no FP8 matrix multiply, so weights are dequantised to BF16 before use and activations are quantised to the E4M3 grid only in emulation mode. After an out-of-memory error the Intel driver did not return the device to a usable state, and later allocations failed even after the tensors were freed. All GPU runs therefore use a fresh process, and the engine checks free memory before allocating a layer. Figure~\ref{fig:engine} shows the data path.
-
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.65\linewidth]{figures/engine_pipeline.pdf}
+\includegraphics[width=\linewidth]{figures/engine_pipeline.pdf}
 \caption{Data path of the streaming engine. The 106.2\,GB weight set is read from the NVMe SSD by 8 threads in 64\,MB blocks, with a measured read speed of 1.2148\,GB/s. One decoder layer is resident on the integrated GPU; the next layer is prefetched into a second host buffer while the current layer computes. Routed experts are dequantised from FP8 to BF16 just in time, and the final norm and decision head run on the CPU in FP32.}
 \label{fig:engine}
 \end{figure}
 
 \section{Verification}
 
+The engine matches an independent FP32 reference at the layer level, picks the same options as the model card example, and agrees with the hosted API on most questions. The model card example differs from the engine by a small probability gap that does not come from a layer-level error.
+
 \subsection{Layer-level reference}
 
-The reference is an independent FP32 CPU implementation that reads the same weights and computes each decoder layer with explicit loops over experts. It does not share code with the engine: the reference dequantises weights with a float32 multiply, applies the mask with a double loop over token roles, and accumulates the routed experts with index addition. We run the team question of the model card example (78 tokens) through both implementations and compare the hidden state after layers 0 and 1. Table~\ref{tab:layers} reports the minimum cosine and the relative L2 error over the sequence. The FP32 path matches the reference to $3.40\times10^{-7}$ and $3.92\times10^{-7}$ relative L2; BF16 to $2.92\times10^{-3}$ and $3.78\times10^{-3}$; BF16 with FP8 activation emulation to $3.40\times10^{-3}$ and $4.64\times10^{-3}$. Extending the check to layers 2 and 3 gives $4.79\times10^{-3}$ and $5.51\times10^{-3}$ in BF16, and $6.35\times10^{-3}$ and $8.51\times10^{-3}$ in FP8 emulation. At layer 3 the BF16 router-weight trace crosses the stored threshold on some tokens (minimum cosine 0.778, relative L2 0.0905), while the hidden state remains close; we treat this as a precision limit of BF16 routing, not a functional failure. The decision head is also checked against an independent implementation of the published head on random inputs: the maximum absolute difference is $4.48\times10^{-9}$ for the choice head and 0 for the yes/no and score heads.
-
-\begin{table}[t]
-\centering
-\small
-\caption{Hidden-state comparison against the FP32 CPU reference after layers 0 and 1. The sequence is the 78-token team question. Cosine is the minimum over tokens; relative L2 is over the whole hidden state.}
-\label{tab:layers}
-\begin{tabular}{lrrrr}
-\toprule
-Mode & L0 cos & L0 rel. L2 & L1 cos & L1 rel. L2 \\
-\midrule
-FP32 & 0.9999998 & $3.40\times10^{-7}$ & 0.9999996 & $3.92\times10^{-7}$ \\
-BF16 & 0.9999920 & $2.92\times10^{-3}$ & 0.9999868 & $3.78\times10^{-3}$ \\
-BF16 + FP8 emulation & 0.9999858 & $3.40\times10^{-3}$ & 0.9999689 & $4.64\times10^{-3}$ \\
-\bottomrule
-\end{tabular}
-\end{table}
+The FP32 path agrees with an independent FP32 CPU reference to about $10^{-7}$ relative L2 error, and the BF16 paths to about $10^{-3}$ (Table~\ref{tab:layers}, Appendix~\ref{app:verification}). The reference reads the same weights but shares no code with the engine. We run the 78-token team question of the model card example through both and compare the hidden state after layers 0 and 1; layers 2 and 3 stay at the same order of error. At layer 3 the BF16 router-weight trace crosses the stored threshold on some tokens while the hidden state remains close, which we treat as a precision limit of BF16 routing, not a functional failure. The decision head matches an independent implementation on random inputs to below $10^{-8}$.
 
 \subsection{The model card example}
 
-Table~\ref{tab:golden} compares the engine with the three-question example published on the model card. The engine selects the same options: billing, yes and anger level 2. The maximum absolute difference is 0.041383, at anger level 3, where the engine gives 0.149617 and the model card gives 0.191. The other differences are smaller: urgent 0.467766 against 0.45, anger level 2 0.520626 against 0.51, and team billing 0.986213 against 0.986.
+The engine selects the same options as the model card on all three questions: billing, yes and anger level 2. The maximum absolute probability difference is 0.041383, at anger level 3 (Table~\ref{tab:golden}).
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \small
-\caption{The model card example in FP8-emulation mode. The largest absolute difference is 0.041383. The argmax choices match.}
+\caption{The model card example in FP8-emulation mode. The largest absolute difference is 0.041383. The argmax choices match. The hosted API's maximum absolute difference from the published example is 0.080740.}
 \label{tab:golden}
 \begin{tabular}{lrr}
 \toprule
@@ -133,17 +139,17 @@ anger: 3 & 0.149617 & 0.191 \\
 \end{tabular}
 \end{table}
 
-The gap has a history. An earlier revision measured 0.022238 on the same example; the current engine measures 0.041383. The preserved code was edited after that measurement, so it is numerically equivalent to the current engine and reproduces 0.041383. We therefore reverted the four edits one at a time in a scratch copy. Reverting the FP32 accumulation in the MoE to BF16 moves the FP8-emulation result from 0.041383 to 0.111615, the largest change of any revert. The activation-scale path changes the result by $9.9\times10^{-6}$, the RoPE layout is numerically neutral, and reverting the attention scale to the value without the YaRN multiplier gives 0.070594 in FP8 emulation and 0.050096 in BF16. On layers 0-3 the current engine is slightly closer to the FP32 reference than the preserved engine at layer 3 (relative L2 0.005507 against 0.006800 in BF16, and 0.008513 against 0.009421 in FP8 emulation), with mixed differences at the earlier layers. The larger published-example gap is a change in accumulation order, not a loss of layer-level accuracy. The exact 0.022238 combination is not preserved, so we report it as history.
+The gap has a history. An earlier revision measured 0.022238 on the same example, and reverting the four later edits one at a time shows that the change comes from FP32 accumulation of the routed experts, not from a loss of layer-level accuracy (Appendix~\ref{app:verification}). The exact earlier combination is not preserved, so we report it as history.
 
-The gap is smaller than the hosted API's own gap to the model card. The API returns 0.982509 for team billing, 0.369260 for urgent yes, and 0.030670, 0.292758, 0.513575, 0.162997 for the four anger levels; its maximum absolute difference from the published example is 0.080740. A 0.041383 engine gap is therefore not evidence that the engine is wrong, and the layer-level comparison is the stronger correctness check. It does mean that the model card probabilities should be treated as a reference point, not as an exact target.
+The hosted API is farther from the published probabilities than the engine, so the gap is not evidence that the engine is wrong. The layer-level comparison is the stronger check.
 
 \subsection{Invariance and API parity}
 
-The earlier revision passed four invariance checks: option order (maximum absolute difference 0.000761), determinism (0.0), batch composition (0.000506) and padding (0.0000435). The current engine uses the same encoder, mask and head, so the mechanism is unchanged, but we did not repeat the full sweep on the current revision. The option-order property follows from the design: options share positions, cannot attend to each other, and the head has no positional encoding.
+The full model agrees with the hosted API on 93\% of the 1,200 questions that are present in every run (Table~\ref{tab:api}). Mean KL is 0.05 and accuracy is 82\% for both systems. A 50-repeat noise floor of the API has 100\% argmax agreement and mean KL 0.0003, so the gap to the full model is well above API noise. The pruned variants agree with the API far less.
 
-Table~\ref{tab:api} compares the engine with the hosted API on the 1,200 questions that are present in every run. The full model agrees with the API on 0.9267 of questions, with mean KL 0.0474 and mean total variation 0.0654. The API accuracy is 0.8175 and the full engine accuracy is 0.8192, a difference of 0.17 percentage points. The pruned variants fall below the full model on the same comparison: $N=32$ general agrees on 0.7775, $N=16$ general on 0.6608, and $N=32$ geometry-calibrated on 0.6508. The 50-repeat noise floor is an argmax agreement of 1.0000, mean absolute difference 0.001531, mean KL 0.000324 and mean total variation 0.003252, so the full-model gap is well above API noise.
+The earlier revision passed four invariance checks (option order, determinism, batch composition and padding), with differences below 0.001 and determinism exact. The current engine uses the same encoder, mask and head, but we did not repeat the full sweep on it.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \small
 \caption{Parity with the hosted Sarvam Prism API on 1,200 questions. The reference is the API. KL is $\mathrm{KL}(\text{API}\,\|\,\text{system})$; the delta is system accuracy minus API accuracy in percentage points.}
@@ -161,13 +167,14 @@ $N=32$ geometry & 0.6508 & 0.5388 & 0.3027 & 0.8175 & $-20.17$ \\
 \end{table}
 
 \section{Performance}
+\label{sec:perf}
 
-All measurements use the same laptop: an Intel Core Ultra CPU, 32\,GB of system RAM, an Intel Arc 140V integrated GPU with 16\,GB of shared memory, and an NVMe SSD that reads at 1.2148\,GB/s with 8 threads and 64\,MB blocks. The engine uses BF16 weights after dequantisation and a lookup-table dequantiser. The full model reads 104,068,783,616 bytes per pass, so its disk floor is 77.2\,s. Table~\ref{tab:perf} reports throughput and Figure~\ref{fig:f4} plots it against batch size.
+Batch size is the main control: on the full model, throughput rises from 2.98 tokens per second at batch 3 to 32.02 at batch 64 (Table~\ref{tab:perf}, Figure~\ref{fig:f4}). All measurements use the same laptop: an Intel Core Ultra CPU, 32\,GB of RAM, an Intel Arc 140V iGPU with 16\,GB of shared memory and an NVMe SSD. The full model reads 104,068,783,616 bytes per pass.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \small
-\caption{Throughput on the tested laptop. The full model uses the disk-streaming mode on the integrated GPU; the pruned variants use the same mode. The CPU row uses RAM-resident weights. Effective TFLOPS is the reported engine metric.}
+\caption{Throughput on the tested laptop. The full model uses the disk-streaming mode on the integrated GPU; the pruned variants use the same mode. The CPU row uses RAM-resident weights.}
 \label{tab:perf}
 \begin{tabular}{llrrrr}
 \toprule
@@ -187,50 +194,48 @@ $N=16$ & CPU, RAM & 3 & 419 & 63.2 & 6.63 \\
 \end{tabular}
 \end{table}
 
-Batch size is the dominant control. On the full model, throughput rises from 2.98 tokens per second at batch 3 to 32.02 at batch 64. The pruned models scale further because their weights are smaller: $N=16$ goes from 6.39 tokens per second at batch 1 to 111.89 at batch 64. The full model is compute-bound at the largest batch: its effective throughput is 0.920 TFLOPS against a measured BF16 matmul peak of 12.860 TFLOPS. The $N=32$ and $N=16$ variants reach 2.133 and 2.553 effective TFLOPS. The disk floor is 77.2\,s of the 270.5\,s total, so further disk tuning alone cannot make the full model much faster.
+The pruned models scale further because their weights are smaller: $N=16$ reaches 111.89 tokens per second at batch 64. The full model is compute-bound at the largest batch, with 0.92 effective TFLOPS against a BF16 matmul peak of 12.86, so further disk tuning alone cannot make it much faster. Figure~\ref{fig:f5} shows that the 77.2\,s disk floor is under a third of the 270.5\,s total at batch 64, so larger batches raise tokens per second and also latency per batch. The three-question example takes 210.8\,s in FP8-emulation mode and 151.0\,s in BF16. The CPU-only $N=16$ run (6.63 tokens per second at batch 3) is a fallback, not a throughput competitor.
 
-Figure~\ref{fig:f5} separates the disk floor from the rest of a full pass at batch 64. The floor is 77.2\,s and the total is 270.5\,s, leaving 193.3\,s for layer computation, host-to-device copies and other overhead. The same split at batch 3 is a 77.2\,s floor against a 134.8\,s total, and at batch 16 a 146.3\,s total. The extra time grows with the number of tokens, which is why larger batches improve tokens per second while increasing latency per batch. The three-question example takes 210.8\,s in FP8-emulation mode and 151.0\,s in BF16.
-
-The CPU-only result is a fallback rather than a throughput competitor. $N=16$ on the CPU with RAM-resident weights reaches 6.63 tokens per second at batch 3 and peaks at 18.54\,GB of resident memory; the integrated GPU reaches 85.09 tokens per second on the same variant at batch 16. The CPU path does not need the SSD after loading, so it remains useful when the GPU is unavailable.
-
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.55\linewidth]{figures/f4_throughput.pdf}
+\includegraphics[width=\linewidth]{figures/f4_throughput.pdf}
 \caption{Tokens per second against batch size for the full model and the two pruned variants on the integrated GPU, plus the CPU-only $N=16$ point. The horizontal axis is logarithmic in batch size.}
 \label{fig:f4}
 \end{figure}
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.62\linewidth]{figures/f5_time_breakdown.pdf}
+\includegraphics[width=\linewidth]{figures/f5_time_breakdown.pdf}
 \caption{Time of one full-model pass at batch size 64 against the measured disk floor. The orange segment includes layer computation, host-to-device copies and other overhead.}
 \label{fig:f5}
 \end{figure}
 
 \section{Expert Pruning}
 
+Keeping 32 of 128 experts preserves classification-style decisions but not knowledge or low-resource-language decisions, and the calibration domain matters more than the ranking rule.
+
 \subsection{Method}
 
-The routed experts dominate the weight set: the expert tensors account for 99,988,013,056 of 106,216,275,456 bytes. We keep the first $N$ experts of every MoE layer under a ranking computed from a calibration pass, and rewrite the router and expert tensors so that the pruned model is a valid weight set of the same architecture with 128 replaced by $N$. Layer 0 is dense and is copied unchanged. The kept sets are nested: the $N=16$ set is a subset of $N=32$, and $N=8$ is a subset of $N=16$, so differences between sizes are not confounded by a different ranking.
+The routed experts hold almost all of the weight bytes (Appendix~\ref{app:inventory}). We keep the first $N$ experts of every MoE layer under a ranking computed from a calibration pass, and rewrite the router and expert tensors so that the pruned model is a valid weight set of the same architecture with 128 replaced by $N$. Layer 0 is dense and is copied unchanged. The kept sets are nested ($N=8$ inside $N=16$ inside $N=32$), so sizes differ only in how many experts are kept.
 
-The ranking uses two statistics per expert and layer. During a calibration pass we accumulate the router weight $g_j(t)$ and the norm $\|f_j(t)\|$ of the expert output for every token routed to expert $j$. The saliency sum is $S_j=\sum_t g_j(t)\|f_j(t)\|$. The REAP rule ranks by $S_j/c_j$, the mean saliency per activation, where $c_j$ is the number of tokens routed to the expert \citep{lasby2026reap}. The TOTAL rule ranks by $S_j/T$, the saliency divided by the number of tokens in the layer. TOTAL favours experts that are used often and strongly; REAP favours experts that are strong when they are used.
+During calibration we accumulate, for every token routed to expert $j$, the router weight $g_j(t)$ and the norm $\|f_j(t)\|$ of the expert output. The saliency sum is $S_j=\sum_t g_j(t)\|f_j(t)\|$. The REAP rule ranks by $S_j/c_j$, the mean saliency per activation, where $c_j$ is the number of tokens routed to the expert \citep{lasby2026reap}. The TOTAL rule ranks by $S_j/T$, the saliency divided by the number of tokens in the layer. TOTAL favours experts that are used often and strongly; REAP favours experts that are strong when they are used.
 
-We use two calibration sets. The general set is 500 questions drawn from the same eleven public datasets as the test set, interleaved across datasets and languages; it contains 82,555 tokens. The narrow set is 96 synthetic geometry questions with 18,760 tokens. The geometry questions are a stress test for a decision task far from the general distribution, not a claim that geometry is the target application. The geometry statistics have a mean zero-count fraction of 0.0449 and a maximum of 0.1875, so some experts are never selected on that set; the general set has a mean of 0.000756 and a maximum of 0.015625. The mean kept-set Jaccard overlap between the two calibrations is 0.3212 at $N=32$ and 0.2638 at $N=16$, so they should be treated as different experts, not two views of the same set.
+We use two calibration sets. The general set is 500 questions drawn from the same eleven public datasets as the test set, interleaved across datasets and languages (82,555 tokens). The narrow set is 96 synthetic geometry questions (18,760 tokens), a stress test far from the general distribution, not a claim that geometry is the target application. The two calibrations keep different experts: the mean kept-set Jaccard overlap is 0.32 at $N=32$ and 0.26 at $N=16$.
 
-The pruned weight sets are verified in three ways. The router and expert tensors have the expected shapes and the kept ids are sorted, unique and in range. The file sizes match the size arithmetic to a relative error of at most $8.43\times10^{-6}$ (29,029,090,688 bytes for $N=32$, 16,522,459,864 for $N=16$, 10,269,144,576 for $N=8$). An identity check rewrites layers 0 and 1 with $N=128$ and $N=16$ and confirms that the hidden state after layer 1 is bitwise identical to the original for the three-question example.
+The pruned weight sets pass three checks: tensor shapes and sorted, unique, in-range ids; file sizes within a relative error of $8.43\times10^{-6}$ of the size arithmetic; and a bitwise-identical hidden state after layer 1 when layers 0 and 1 are rewritten with $N=128$ and $N=16$.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.48\linewidth]{figures/pruning_pipeline.pdf}
+\includegraphics[width=\linewidth]{figures/pruning_pipeline.pdf}
 \caption{Expert pruning pipeline. A calibration pass collects router and expert-output statistics for every MoE layer. Experts are ranked by TOTAL or REAP saliency, the top $N$ are kept in each layer, and the router and expert tensors are rewritten. The pruned weight set is compared with the full model on the test questions.}
 \label{fig:pruning}
 \end{figure}
 
 \subsection{Fidelity}
 
-The reference is the full BF16 engine with identical batching. We report argmax agreement, the fraction of questions on which the pruned model and the full model select the same option; mean KL divergence $\mathrm{KL}(\text{full}\,\|\,\text{variant})$; mean total variation; and accuracy on the labelled test set. The test set has 1,200 questions in nine domains and five languages. The overall results are in Table~\ref{tab:fidelity} and Figure~\ref{fig:f1}. Keeping 32 of 128 experts gives 0.7750 agreement and an accuracy drop of 11.00 percentage points. Keeping 16 gives 0.6633 agreement and a drop of 18.83 points. The REAP ranking at $N=16$ is worse than TOTAL on this test set, with 0.6342 agreement and 0.5960 mean KL against 0.6633 and 0.5148 for TOTAL. The $N=8$ variant reaches 0.4925 agreement and loses 34.58 points of accuracy.
+Fidelity falls steadily as experts are removed, and the loss is concentrated in a few task types. The reference is the full BF16 engine with identical batching. We report argmax agreement, mean KL divergence $\mathrm{KL}(\text{full}\,\|\,\text{variant})$, mean total variation and accuracy on the labelled test set of 1,200 questions in nine domains and five languages (Table~\ref{tab:fidelity}, Figure~\ref{fig:f1}). Keeping 32 experts gives 78\% agreement and an accuracy drop of 11 points; keeping 16 gives 66\% and a drop of 19 points. REAP at $N=16$ is worse than TOTAL (63\% agreement against 66\%), and $N=8$ reaches 49\% agreement.
 
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \small
 \caption{Fidelity of pruned variants against the full model on 1,200 test questions. Agreement is the fraction of identical argmax choices; KL is $\mathrm{KL}(\text{full}\,\|\,\text{variant})$; TV is total variation. The 95\% interval is for agreement. Accuracy is on the labelled test set.}
@@ -249,93 +254,125 @@ N8\_total    & 8  & 0.4925 & 0.4643--0.5208 & 0.8967 & 0.4823 & 0.8192 & 0.4733 
 \end{tabular}
 \end{table}
 
-The average hides the main result. Figure~\ref{fig:f2} splits the general-calibrated variants by domain. At $N=32$, NLI reaches 0.9800 agreement, sentiment 0.9875, topic or entity type 0.9571, intent routing 0.9036, reading-comprehension QA 0.8875, tool-use decision 0.8286 and topic classification 0.8167. Knowledge multiple choice reaches only 0.4080, and toxicity or moderation 0.6933. The accuracy drop follows the same split: NLI loses 0.00 points, sentiment 1.25, topic or entity type 4.29, intent routing 4.64, reading QA 1.25, topic classification 0.83 and toxicity 3.33, while knowledge MCQ loses 40.00 and tool use 11.43. At $N=16$ the classification-style tasks remain usable but the knowledge task collapses further, to 0.3080 agreement and a 46.00-point drop.
-
-The language split is in Figure~\ref{fig:f3}. English agrees at 0.8225 at $N=32$ and 0.7193 at $N=16$. Tamil is close to English at $N=32$ (0.8065) but falls to 0.5323 at $N=16$. Hindi, Bengali and Telugu are already below 0.65 at $N=32$ (0.6275, 0.6373 and 0.5833) and fall to 0.5490, 0.5294 and 0.4583 at $N=16$. The accuracy drops are larger than the English drop at both sizes: 20.59, 16.67 and 25.00 points at $N=32$ for Hindi, Bengali and Telugu, against 8.35 for English. The calibration set is 71\% English; the low-resource languages lose experts that the general calibration rarely selects.
-
-\subsection{Calibration and ranking}
-
-Cross-evaluating the two calibration domains gives the following. General calibration is the better choice on the general test set at both sizes: 0.7750 against 0.6508 at $N=32$, and 0.6633 against 0.5742 at $N=16$. The order reverses on the 63 held-out geometry questions: geometry calibration gives 0.9683 agreement at $N=32$, while general calibration gives 0.6984 at $N=32$ and 0.4762 at $N=16$. The general-calibrated $N=32$ model also has a much larger geometry KL (0.5779) than the geometry-calibrated model (0.0261). The calibration-domain contrast is larger than the TOTAL-versus-REAP contrast at either size. The calibration distribution, not the ranking rule, is the first decision when pruning this model.
-
-\subsection{Layer skipping}
-
-A second way to shrink the model is to skip whole decoder layers, which removes attention and MoE cost rather than experts. On the 63 held-out geometry questions, the unskipped $N=32$ geometry-calibrated model reaches 0.9683 agreement, 0.0261 KL and 0.7302 accuracy at 70.1 tokens per second. Skipping layers 20 and 28 reduces agreement to 0.7143 and raises KL to 0.4141; skipping layers 20, 25, 28 and 29 gives 0.7302 agreement and 0.4656 KL. The four-layer skip is not worse than the two-layer skip on this small set, so the ordering is not monotonic in the number of layers. What is clear is that layer skipping costs much more fidelity than expert pruning at comparable size: skipping two layers drops agreement by 0.253968, while the 32-expert model agrees at 0.9683 on the same 63 questions. We report the measurement and do not claim a general rule from 63 questions.
-
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.78\linewidth]{figures/f1_agreement_kl.pdf}
+\includegraphics[width=\linewidth]{figures/f1_agreement_kl.pdf}
 \caption{Agreement and KL against the full model as routed experts are removed. The general-calibration curve has no $N=8$ point because that variant was not built; the synthetic-geometry curve includes $N=8$. The full model is the identity reference at $N=128$.}
 \label{fig:f1}
 \end{figure}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=0.64\linewidth]{figures/f6_expert_usage.pdf}
-\caption{Share of routed tokens per expert and layer on the 500-question general calibration set. Each row is a MoE layer and each column an expert; the share is the expert's routed-token count divided by all routed tokens in that layer. Usage is spread across the 128 experts rather than concentrated on a fixed small set.}
-\label{fig:f6}
-\end{figure}
+The average hides the main result. Figure~\ref{fig:f2} splits the general-calibrated variants by domain: at $N=32$, NLI (98\%), sentiment (99\%) and intent routing (90\%) stay close to the full model, while knowledge multiple choice falls to 41\% agreement and loses 40 accuracy points. At $N=16$ knowledge multiple choice falls further, to 31\%.
 
-\begin{figure}[t]
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.80\linewidth]{figures/f2_domain_agreement.pdf}
+\includegraphics[width=\linewidth]{figures/f2_domain_agreement.pdf}
 \caption{Argmax agreement by domain at $N=32$ and $N=16$ for the general-calibrated variants. The tasks are ordered by $N=32$ agreement.}
 \label{fig:f2}
 \end{figure}
 
-\begin{figure}[t]
+Languages split the same way (Figure~\ref{fig:f3}). At $N=32$, Hindi, Bengali and Telugu agree on 63\%, 64\% and 58\% of questions, against 82\% for English and 81\% for Tamil, and their accuracy drops are 17 to 25 points against 8 for English. The general calibration set is 71\% English, so the low-resource languages lose experts that it rarely selects.
+
+\begin{figure}[!htbp]
 \centering
-\includegraphics[width=0.50\linewidth]{figures/f3_language_agreement.pdf}
+\includegraphics[width=\linewidth]{figures/f3_language_agreement.pdf}
 \caption{Argmax agreement by language at $N=32$ and $N=16$ for the general-calibrated variants.}
 \label{fig:f3}
 \end{figure}
 
+\subsection{Calibration and ranking}
+
+The calibration domain decides which experts survive, and it matters more than the ranking rule. General calibration is better on the general test set at both sizes, the order reverses on the 63 held-out geometry questions, and both contrasts are larger than the TOTAL-versus-REAP contrast at either size (Table~\ref{tab:cross}). The calibration distribution, not the ranking rule, is the first decision when pruning this model.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Cross-evaluation of the calibration domains. Agreement with the full model on the general test set (1,200 questions) and on 63 held-out geometry questions. Geometry KL is $\mathrm{KL}(\text{full}\,\|\,\text{variant})$ on the geometry questions. A dash means the value was not measured.}
+\label{tab:cross}
+\begin{tabular}{lrrrr}
+\toprule
+Calibration & $N$ & General test & Geometry test & Geometry KL \\
+\midrule
+General & 32 & 0.7750 & 0.6984 & 0.5779 \\
+General & 16 & 0.6633 & 0.4762 & -- \\
+Geometry & 32 & 0.6508 & 0.9683 & 0.0261 \\
+Geometry & 16 & 0.5742 & -- & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Layer skipping}
+Skipping whole decoder layers costs much more fidelity than expert pruning at comparable size. On the 63 held-out geometry questions, skipping two layers lowers the agreement of the 32-expert geometry-calibrated model from 97\% to 71\%; we do not claim a general rule from 63 questions (Appendix~\ref{app:details}).
+
 \section{Related Work}
 
 \paragraph{Expert pruning and merging.}
-Sparse MoE layers trade parameters for compute: each token activates a small subset of experts \citep{shazeer2017outrageously,fedus2022switch,jiang2024mixtral}. The static parameter count still dominates memory, so a line of work removes experts after training. Lu et al.\ prune experts by reconstruction loss on a calibration set and combine pruning with dynamic expert skipping \citep{lu2024experts}. REAP ranks experts by the router-weighted norm of their output and argues that pruning preserves routing control that merging loses \citep{lasby2026reap}. MoE-Pruner scores individual weights with router weights and input activations \citep{xie2024moepruner}. Our study uses the same router statistics but asks which decision tasks survive when entire experts are removed, and how much the calibration distribution changes the answer.
+Sparse MoE layers activate a few experts per token \citep{shazeer2017outrageously,fedus2022switch,jiang2024mixtral}, but the full parameter count still dominates memory, so several methods remove experts after training. Lu et al.\ prune by reconstruction loss on a calibration set and add dynamic expert skipping \citep{lu2024experts}. REAP ranks experts by the router-weighted norm of their output and argues that pruning keeps routing control that merging loses \citep{lasby2026reap}. MoE-Pruner scores weights with router weights and input activations \citep{xie2024moepruner}. We use similar router statistics but ask which decision tasks survive and how much the calibration distribution matters.
 
 \paragraph{Weight offloading and layer streaming.}
-DeepSpeed-Inference combines GPU, CPU and NVMe memory to serve models larger than total GPU memory \citep{aminabadi2022deepspeed}. FlexGen targets high-throughput generation on a single commodity GPU and searches over tensor placement and batch schedules \citep{sheng2023flexgen}. PowerInfer exploits activation locality to keep hot neurons on the GPU and compute cold neurons on the CPU \citep{song2024powerinfer}. For MoE models, Eliseev and Mazur exploit the sparse activation pattern to cache and prefetch experts during generation \citep{eliseev2023offloading}. These systems are built around autoregressive decoding, where the weights are revisited for every token and the KV cache is a first-class object. A decision model has no decode loop: one forward pass returns every option probability, so streaming can be organised as a single sequential read of the weights. Our engine is deliberately simple for this setting, and its measurements expose the disk floor and the batch amortisation directly.
+DeepSpeed-Inference combines GPU, CPU and NVMe memory to serve models larger than GPU memory \citep{aminabadi2022deepspeed}, and FlexGen searches tensor placement and batch schedules on one commodity GPU \citep{sheng2023flexgen}. PowerInfer keeps hot neurons on the GPU and cold ones on the CPU \citep{song2024powerinfer}, and Eliseev and Mazur cache and prefetch experts during generation \citep{eliseev2023offloading}. All of these assume autoregressive decoding. A decision model needs one forward pass, so streaming reduces to a single sequential read of the weights.
 
 \paragraph{Classification heads and decision models.}
-Encoder models such as BERT are usually adapted to classification with a small head on a pooled representation \citep{devlin2019bert}. Sentence-BERT and SetFit show that strong sentence representations plus a light classifier can replace heavier fine-tuning for many classification tasks \citep{reimers2019sentence,tunstall2022setfit}. Prism differs in that it scores the options jointly: the option spans share a context, cannot see each other, and meet only at the answer marker, and the head attends over the option slots. This design gives a calibrated distribution over a fixed option set in one pass \citep{sarvam2026prism}. Our pruning results are therefore not a generic statement about classification heads; they measure how much of a 105B joint scorer is needed for decisions of different kinds.
+BERT-style encoders are adapted to classification with a small head on a pooled representation \citep{devlin2019bert}, and Sentence-BERT and SetFit pair sentence representations with a light classifier \citep{reimers2019sentence,tunstall2022setfit}. Prism scores options jointly: option spans share a context, cannot see each other and meet only at the answer marker \citep{sarvam2026prism}. Our pruning results therefore describe a 105B joint scorer, not classification heads in general.
 
 \section{Limitations}
 
-The measurements come from one laptop with one integrated GPU and one SSD. We did not test NVIDIA hardware, a discrete GPU, or a different disk. The FP8 path is emulated in BF16 because the integrated GPU has no FP8 matrix multiply; native FP8 hardware would change both speed and numerics. The engine is not fast in absolute terms: a full pass at batch 64 takes 270.5\,s, a three-question request takes 210.8\,s in FP8-emulation mode, and the disk floor alone is 77.2\,s. The pruned variants are faster but are not released.
+The measurements come from one laptop with one integrated GPU and one SSD, and we did not test NVIDIA hardware, a discrete GPU or a different disk. The FP8 path is emulated in BF16, so native FP8 hardware would change both speed and numerics. The engine is slow in absolute terms, and the pruned variants are faster but not released. The 63 held-out geometry questions are a small evaluation set, so the layer-skip comparison is a measurement, not a general rule. We did not test other Indian languages, long contexts, code, security prompts or top-$k$ values other than 8. The API parity uses recorded responses and the hosted service may change. The invariance sweep was run on the earlier revision.
 
-The test set is bounded: 1,200 questions in nine domains and five languages, with a longest question of 569 tokens. The calibration sets are 500 general questions and 96 synthetic geometry questions. The 63 held-out geometry questions are a small evaluation set, and the layer-skip comparison is a measurement on that set, not a general rule. We did not test other Indian languages, long contexts, code, security prompts, or top-$k$ values other than 8. The host-API parity uses recorded responses and a fixed test set; the hosted service may change. The invariance sweep was run on the earlier revision, although the encoder, mask and head are unchanged.
-
-The golden example is not an exact reproduction. The current engine is 0.041383 away from the published probabilities, and the hosted API is 0.080740 away. The layer-level reference and API parity are stronger evidence than the model card example, but the gap means that the engine matches the model's decisions rather than every published probability. The pruning results are also specific to this model and router: TOTAL and REAP are first-order saliency heuristics, and the low overlap between general and geometry calibration shows that the ranking is sensitive to the calibration distribution. A production system would need a calibration set that covers its languages and decision types, with a held-out check for each.
+The model card example is not reproduced exactly: the engine matches the model's decisions but not every published probability. TOTAL and REAP are first-order saliency heuristics, and the low overlap between the two calibrations shows that the ranking is sensitive to the calibration distribution. A production system would need a calibration set that covers its languages and decision types, with a held-out check for each.
 
 \section{Conclusion}
 
-This report asked whether a 105B FP8 decision model can run on a laptop and how much of it is needed. The streaming engine answers the first question: one decoder layer at a time, with prefetch and just-in-time FP8 dequantisation, runs the full 106.2\,GB model on an integrated GPU at 32.02 tokens per second at batch 64, matches the model card's argmax choices, and agrees with the hosted API on 0.9267 of 1,200 questions. The layer-level reference and the API comparison show that the engine implements the model, not an approximation of it. The remaining 0.041383 gap to the model card is smaller than the hosted API's own 0.080740 gap, and the layer-level comparison shows that the current engine is not less accurate than the preserved revision at the deepest layer checked.
+A 105B FP8 decision model runs correctly on a laptop integrated GPU when it is streamed one decoder layer at a time. The engine agrees with an independent FP32 reference, reproduces the model card's choices and tracks the hosted API closely. It is slow in absolute terms, and the disk floor is a minor part of the cost at large batches.
 
-The pruning study answers the second question with a boundary rather than a single number. Keeping 32 of 128 experts preserves classification-style decisions: NLI at 0.9800 agreement, sentiment at 0.9875, intent routing at 0.9036, and topic or entity type at 0.9571. It does not preserve knowledge multiple choice, which falls to 0.4080 and loses 40.00 accuracy points, or Hindi, Bengali and Telugu, which fall to 0.6275, 0.6373 and 0.5833. The calibration domain is the first variable: geometry-calibrated experts reach 0.9683 on held-out geometry but 0.6508 on the general test, and general-calibrated experts show the reverse. The ranking rule is second: TOTAL beats REAP at $N=16$ on the general test and at $N=32$ on geometry, but by a smaller margin.
-
-The practical implication is that a pruned decision model should be calibrated for the decisions and languages it will serve, and that a single "experts kept" number is not a sufficient specification. A useful next step is a mixed calibration set with per-language and per-domain held-out checks, and a native FP8 implementation on hardware that supports it. The engine and the result files are public, so both the streaming path and the pruning measurements can be reproduced without the original machine.
+Expert pruning gives a boundary rather than a single number. Keeping a quarter of the experts preserves classification-style decisions and loses knowledge and low-resource-language decisions, and the calibration domain matters more than the ranking rule. A pruned decision model should be calibrated for the decisions and languages it will serve. The engine and result files are public. A native FP8 implementation and a mixed calibration set with per-language held-out checks are the next steps.
 
 \appendix
+\section{Verification Details}
+\label{app:verification}
+
+\subsection{Layer-level numbers}
+
+Table~\ref{tab:layers} reports the hidden-state comparison after layers 0 and 1. Extending the check to layers 2 and 3 gives relative L2 errors of $4.79\times10^{-3}$ and $5.51\times10^{-3}$ in BF16 and $6.35\times10^{-3}$ and $8.51\times10^{-3}$ in FP8 emulation. At layer 3 the BF16 router-weight trace has minimum cosine 0.778 and relative L2 0.0905. The decision head differs from an independent implementation by at most $4.48\times10^{-9}$.
+
+\begin{table}[!htbp]
+\centering
+\small
+\caption{Hidden-state comparison against the FP32 CPU reference after layers 0 and 1. The sequence is the 78-token team question. Cosine is the minimum over tokens; relative L2 is over the whole hidden state.}
+\label{tab:layers}
+\begin{tabular}{lrrrr}
+\toprule
+Mode & L0 cos & L0 rel. L2 & L1 cos & L1 rel. L2 \\
+\midrule
+FP32 & 0.9999998 & $3.40\times10^{-7}$ & 0.9999996 & $3.92\times10^{-7}$ \\
+BF16 & 0.9999920 & $2.92\times10^{-3}$ & 0.9999868 & $3.78\times10^{-3}$ \\
+BF16 + FP8 emulation & 0.9999858 & $3.40\times10^{-3}$ & 0.9999689 & $4.64\times10^{-3}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{History of the gap and invariance checks}
+
+An earlier revision measured a maximum gap of 0.022238 on the model card example. The preserved code was edited after the earlier measurement, so it is numerically equivalent to the current engine. We reverted the four edits one at a time in a scratch copy. Reverting the FP32 accumulation in the MoE to BF16 moves the FP8-emulation gap to 0.111615, the largest change of any revert. Reverting the attention scale to the value without the YaRN multiplier gives 0.070594 in FP8 emulation and 0.050096 in BF16. The activation-scale path changes the result by $9.9\times10^{-6}$ and the RoPE layout is numerically neutral. The larger gap is a change in accumulation order, not a loss of layer-level accuracy. The exact 0.022238 combination is not preserved.
+
+The earlier invariance checks gave maximum absolute differences of 0.000761 for option order, 0.0 for determinism, 0.000506 for batch composition and 0.0000435 for padding. In the 50-repeat API noise floor, mean absolute difference is 0.001531, mean KL 0.000324 and mean total variation 0.003252.
+
+\section{Dequantiser Speed and Layer Skipping}
+\label{app:details}
+
+The E4M3 lookup table has 254 finite codes, a largest finite value of 448.0 and a smallest positive value of 0.001953125. In the measured reader loop the lookup table reaches 0.8458\,GB/s, the native BF16 cast 0.5063\,GB/s and a bit-manipulation path 0.1041\,GB/s.
+
+On the 63 held-out geometry questions, the unskipped $N=32$ geometry-calibrated model reaches agreement 0.9683, KL 0.0261 and accuracy 0.7302 at 70.1 tokens per second. Skipping layers 20 and 28 gives agreement 0.7143 and KL 0.4141; skipping layers 20, 25, 28 and 29 gives agreement 0.7302 and KL 0.4656. The four-layer skip is not worse than the two-layer skip on this small set. Skipping two layers drops agreement by 0.253968.
+
 \section{Tensor Inventory and Reproduction}
+\label{app:inventory}
 
-\subsection{Inventory}
+\subsection{Inventory and size arithmetic}
 
-The weight set contains 732 backbone tensors in 33 files: one embedding file and 32 decoder-layer files; the decision head is a separate file. The backbone totals 106,216,275,456 bytes; the decision head adds 117,837,824 bytes. The tensor categories are 2,147,483,648 bytes of embedding, 3,032,588,288 of attention, 99,988,013,056 of routed experts, 781,156,352 of shared experts, 65,027,584 of router, 201,474,048 of dense MLP, 524,288 of normalisation and 8,192 of final norm.
+The weight set contains 732 backbone tensors in 33 files: one embedding file and 32 decoder-layer files; the decision head is a separate file. The backbone totals 106,216,275,456 bytes; the decision head adds 117,837,824 bytes. Routed experts account for 99,988,013,056 of those bytes, attention for 3,032,588,288, embeddings for 2,147,483,648 and shared experts for 781,156,352; the router, dense MLP and norms make up the rest.
 
-\subsection{Size arithmetic}
+Let $b_e=25{,}198{,}592$ be the bytes of one routed expert, $b_r=16{,}388$ of one router row, $b_s=25{,}198{,}592$ of the shared expert and $b_a=94{,}784{,}768$ of the attention block. One MoE layer with $N$ kept experts has $B_{\text{layer}}(N) = N(b_e+b_r)+b_s+b_a$ bytes, and the 32-layer backbone has $B_{\text{total}}(N) = 31\,B_{\text{layer}}(N) + B_{\text{layer 0}}$ with $B_{\text{layer 0}}=296{,}258{,}816$. Table~\ref{tab:sizes} evaluates this for the sizes used in the study.
 
-Let $b_e=25{,}198{,}592$ be the bytes of one routed expert, $b_r=16{,}388$ the bytes of one router row, $b_s=25{,}198{,}592$ the bytes of the shared expert and $b_a=94{,}784{,}768$ the bytes of the attention block. One MoE layer with $N$ kept experts has
-\begin{equation}
-B_{\text{layer}}(N) = N(b_e+b_r)+b_s+b_a .
-\end{equation}
-The 32-layer backbone is
-\begin{equation}
-B_{\text{total}}(N) = 31\,B_{\text{layer}}(N) + B_{\text{layer 0}},
-\end{equation}
-with $B_{\text{layer 0}}=296{,}258{,}816$ bytes. Table~\ref{tab:sizes} evaluates this for the sizes used in the study. The reduction is relative to $N=128$.
-
-\begin{table}[t]
+\begin{table}[!htbp]
 \centering
 \small
 \caption{Weight-set size for different expert counts. The total column is the 32-layer backbone; the embedding column adds the 2,147,483,648-byte embedding file.}
@@ -354,26 +391,20 @@ $N$ & Layer bytes & 31 layers & Total bytes & With embedding (GB) \\
 
 \subsection{Environment and reproduction}
 
-The measurements use Python 3.11, torch 2.9.1+xpu, driver 1.6.34541, an Intel Core Ultra CPU, 32\,GB of system RAM, an Intel Arc 140V integrated GPU with 16\,GB of shared memory, and an NVMe SSD. The measured BF16 matmul throughput is 12.860 TFLOPS at $4096^3$, the host-to-device copy rate is 0.7924\,GB/s, and the disk read rate is 1.2148\,GB/s with 8 threads and 64\,MB blocks. The engine has not been tested on NVIDIA hardware.
+The measurements use Python 3.11, torch 2.9.1+xpu and driver 1.6.34541 on the laptop described in Section~\ref{sec:perf}. The measured BF16 matmul throughput is 12.860 TFLOPS at $4096^3$, and the host-to-device copy rate is 0.7924\,GB/s.
 
 The public repository contains the engine, the result files and the scripts that produced them. The main commands, run from the repository root, are:
+{\footnotesize
 \begin{verbatim}
 python scripts/inventory.py --weights weights
 python scripts/verify_layers.py --weights weights
 python scripts/golden.py --weights weights
 python scripts/perf.py --weights weights --out results
-python scripts/router_stats.py --weights weights \
-  --data data/eval/calib.jsonl --out results
-python scripts/build_pruned.py --weights weights \
-  --stats results/pruning/router_stats.npz --ranking total \
-  --n 32,16 --suffix general --out results
-python scripts/run_eval.py --weights weights \
-  --variant N32_general --split test --out results
-python scripts/eval_fidelity.py --probabilities results/probabilities \
-  --labels results/eval/labels.json --out results
+python scripts/build_pruned.py --weights weights --ranking total --n 32,16 --out results
+python scripts/run_eval.py --weights weights --variant N32_general --split test --out results
 python scripts/api_parity.py
-\end{verbatim}
-The complete command list is in the repository's README. The evaluation set is built from public datasets with their licences recorded in \texttt{results/eval/datasets.json}; question text is not redistributed.
+\end{verbatim}}
+The README has the full command list. The evaluation set is built from public datasets with their licences recorded in \texttt{results/eval/datasets.json}; question text is not redistributed.
 
 \bibliographystyle{plainnat}
 \begingroup
