@@ -9,8 +9,6 @@
 - **A streaming engine** in pure PyTorch. It runs the full model on an Intel Arc 140V integrated GPU with 32 GB of shared RAM, reading one decoder layer at a time from an NVMe SSD.
 - **An expert-pruning study.** It keeps N of the 128 routed experts per layer and measures what breaks.
 
-No weights are released. The pruned variants did not hold up well enough (see below).
-
 ## How it works
 
 <p align="center"><img src="docs/assets/engine_pipeline.png" width="90%"></p>
